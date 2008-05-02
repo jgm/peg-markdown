@@ -1,0 +1,1422 @@
+%{
+/**********************************************************************
+
+  markdown.leg - markdown in C using a PEG grammar. 
+  (c) 2008 John MacFarlane (jgm at berkeley dot edu).
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; version 2 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+ ***********************************************************************/
+
+#include <stdbool.h>
+#include <assert.h>
+#include <stdarg.h>
+#include "my_getopt-1.5/getopt.h"
+
+extern char *strdup(const char *string);
+extern int strcasecmp(const char *string1, const char *string2);
+int yyparse(void);
+
+/**********************************************************************
+
+  Data Structures
+
+ ***********************************************************************/
+
+/* Information (label, URL and title) for a link. */
+struct Link {
+    struct ElementListItem   *label;
+    char                     *url;
+    char                     *title;    
+};
+
+typedef struct Link link;
+
+/* Union for contents of an Element (string, list, or link). */
+union Contents {
+    char                   *str;
+    struct ElementListItem *list;
+    struct Link            link;
+};
+
+/* Types of semantic values returned by parsers. */ 
+enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, see below. */
+            SPACE,
+            LINEBREAK,
+            STR,
+            LINK,
+            IMAGE,
+            CODE,
+            HTML,
+            EMPH,
+            STRONG,
+            PLAIN,
+            PARA,
+            LISTITEM,
+            BULLETLIST,
+            ORDEREDLIST,
+            H1, H2, H3, H4, H5, H6,  /* Code assumes that these are in order. */
+            BLOCKQUOTE,
+            VERBATIM,
+            HTMLBLOCK,
+            HRULE,
+            REFERENCE
+          };
+
+/* Output formats. */
+enum formats { HTML_FORMAT,
+               LATEX_FORMAT
+             };
+
+/* Semantic value of a parsing action. */
+struct Element {
+    int            key;
+    union Contents contents;
+};
+
+typedef struct Element element;
+
+/* Node in linked list of Elements. */
+struct ElementListItem {
+    element                 val;
+    struct ElementListItem  *next;    
+};
+
+typedef struct ElementListItem item;
+
+/**********************************************************************
+
+  Global variables used in parsing
+
+ ***********************************************************************/
+
+static char *charbuf = "";     /* Buffer of characters to be parsed. */
+static item *references;       /* List of link references found. */
+static int output_format;
+
+/**********************************************************************
+
+  List manipulation functions 
+
+ ***********************************************************************/
+
+/* cons - cons an element onto a list, returning pointer to new head */
+item *cons(element new, item *list) {
+    item *head = malloc(sizeof(item));
+    assert(head != NULL);
+    (*head).val = new;
+    (*head).next = list;
+    return head;
+}
+
+/* pushelt - push an element onto the (list) contents of an element */
+void pushelt(element new, element *lst) {
+    assert((*lst).key == LIST);
+    (*lst).contents.list = cons(new, (*lst).contents.list);
+}
+
+/* reverse - reverse a list, returning pointer to new list */
+item *reverse(item *list) {
+    item *new = NULL;
+    while (list != NULL) {
+        new = cons((*list).val, new);
+        list = (*list).next;
+    }
+    return new;
+}
+
+/* length_of_strings - returns sum of length of strings in an item list of STR elements */
+int length_of_strings(item *list) {
+    int len = 0;
+    while (list != NULL) {
+        assert((*list).val.key == STR);
+        assert((*list).val.contents.str != NULL);
+        len += strlen((*list).val.contents.str);
+        list = (*list).next;
+    }
+    return len;
+}
+
+/* concat_string_list - concatenates string contents of list of STR elements */
+char *concat_string_list(item *list) {
+    char *result = malloc(length_of_strings(list) + 2); /* leave room for optional \n and \0  */
+    *result = '\0';
+    while (list != NULL) {
+        assert((*list).val.key == STR);
+        assert((*list).val.contents.str != NULL);
+        result = strcat(result, (*list).val.contents.str);
+        list = (*list).next;
+    }
+    return result;
+}
+
+/**********************************************************************
+
+  Utility functions for printing
+
+ ***********************************************************************/
+
+static bool padded = true;     /* If true, no blank line needed before next output */
+
+/* pad - add a blank line if one is needed */
+void pad(int num) {
+    if (!padded)
+        while (num-- > 0)
+            printf("\n");
+    padded = true;
+}
+
+/**********************************************************************
+
+  Functions for printing Elements as HTML
+
+ ***********************************************************************/
+
+/* print_html_string - print string, escaping for HTML  
+ * If obfuscate selected, convert characters to hex or decimal entities at random */
+void print_html_string(char *str, bool obfuscate) {
+    while (*str != '\0') {
+        switch (*str) {
+        case '&':
+            printf("&amp;");
+            break;
+        case '<':
+            printf("&lt;");
+            break;
+        case '>':
+            printf("&gt;");
+            break;
+        case '"':
+            printf("&quot;");
+            break;
+        default:
+            if (obfuscate) {
+                if (rand() % 2 == 0)
+                    printf("&#%d;", *str);
+                else
+                    printf("&#x%x;", *str);
+            }
+            else
+                putchar(*str);
+            break;
+        }
+    str++;
+    }
+}
+
+void print_html_element(element elt, bool obfuscate);
+
+/* print_html_element_list - print a list of elements as HTML */
+void print_html_element_list(item *list, bool obfuscate) {
+    while (list != NULL) {
+        print_html_element((*list).val, obfuscate);
+        list = (*list).next;
+    }
+}
+
+/* print_html_element - print an element as HTML */
+void print_html_element(element elt, bool obfuscate) {
+    int lev;
+    char *old_charbuf;
+    switch (elt.key) {
+    case SPACE:
+        printf("%s", elt.contents.str);
+        break;
+    case LINEBREAK:
+        printf("<br/>");
+        break;
+    case STR:
+        print_html_string(elt.contents.str, obfuscate);
+        break;
+    case CODE:
+        printf("<code>");
+        print_html_string(elt.contents.str, obfuscate);
+        printf("</code>");
+        break;
+    case HTML:
+        printf(elt.contents.str);
+        break;
+    case LINK:
+        if (strstr(elt.contents.link.url, "mailto:") == elt.contents.link.url)
+            obfuscate = true;  /* obfuscate mailto: links */
+        printf("<a href=\"");
+        print_html_string(elt.contents.link.url, obfuscate);
+        printf("\"");
+        if (strlen(elt.contents.link.title) > 0) {
+            printf(" title=\"");
+            print_html_string(elt.contents.link.title, obfuscate);
+            printf("\"");
+        }
+        printf(">");     
+        print_html_element_list(elt.contents.link.label, obfuscate);
+        printf("</a>");
+        break;
+    case IMAGE:
+        printf("<img src=\"");
+        print_html_string(elt.contents.link.url, obfuscate);
+        printf("\" alt=\"");
+        print_html_element_list(elt.contents.link.label, obfuscate);
+        printf("\"");
+        if (strlen(elt.contents.link.title) > 0) {
+            printf(" title=\"");
+            print_html_string(elt.contents.link.title, obfuscate);
+            printf("\"");
+        }
+        printf(" />");
+        break;
+    case EMPH:
+        printf("<em>");
+        print_html_element_list(elt.contents.list, obfuscate);
+        printf("</em>");
+        break;
+    case STRONG:
+        printf("<strong>");
+        print_html_element_list(elt.contents.list, obfuscate);
+        printf("</strong>");
+        break;
+    case LIST:
+        print_html_element_list(elt.contents.list, obfuscate);
+        break;
+    case H1: case H2: case H3: case H4: case H5: case H6:
+        lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
+        pad(2);
+        printf("<h%1d>", lev);
+        print_html_element_list(elt.contents.list, obfuscate);
+        printf("</h%1d>", lev);
+        padded = false;
+        break;
+    case PLAIN:
+        pad(1);
+        print_html_element_list(elt.contents.list, obfuscate);
+        padded = false;
+        break;
+    case PARA:
+        pad(2);
+        printf("<p>");
+        print_html_element_list(elt.contents.list, obfuscate);
+        printf("</p>");
+        padded = false;
+        break;
+    case HRULE:
+        pad(2);
+        printf("<hr />");
+        padded = false;
+        break;
+    case HTMLBLOCK:
+        pad(2);
+        printf(elt.contents.str);
+        padded = false;
+        break;
+    case VERBATIM:
+        pad(2);
+        printf("<pre><code>");
+        print_html_string(elt.contents.str, obfuscate);
+        printf("</code></pre>");
+        padded = false;
+        break;
+    case BULLETLIST:
+        pad(2);
+        printf("<ul>");
+        padded = false;
+        print_html_element_list(elt.contents.list, obfuscate);
+        pad(1);
+        printf("</ul>");
+        padded = false;
+        break;
+    case ORDEREDLIST:
+        pad(2);
+        printf("<ol>");
+        padded = false;
+        print_html_element_list(elt.contents.list, obfuscate);
+        pad(1);
+        printf("</ol>");
+        padded = false;
+        break;
+    case LISTITEM:
+        pad(1);
+        printf("<li>");
+        padded = true;
+        old_charbuf = charbuf;
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        charbuf = strtok(elt.contents.str, "\001");
+        yyparse();
+        while ((charbuf = strtok(NULL, "\001")))
+            yyparse();
+        charbuf = old_charbuf;
+        printf("</li>");
+        padded = false;
+        break;
+    case BLOCKQUOTE:
+        pad(2);
+        printf("<blockquote>");
+        old_charbuf = charbuf;
+        charbuf = elt.contents.str;
+        yyparse();
+        charbuf = old_charbuf;
+        printf("</blockquote>");
+        padded = false;
+        break;
+    case REFERENCE:
+        /* Nonprinting */
+        break;
+    default: 
+        fprintf(stderr, "print_html_element encountered unknown element key = %d\n", elt.key); 
+        exit(EXIT_FAILURE);
+        break;
+    }
+}
+
+/**********************************************************************
+
+  Functions for printing Elements as LaTeX
+
+ ***********************************************************************/
+
+/* print_latex_string - print string, escaping for LaTeX */
+void print_latex_string(char *str) {
+    while (*str != '\0') {
+        switch (*str) {
+          case '{': case '}': case '$': case '%':
+          case '&': case '_': case '#':
+            printf("\\%c", *str);
+            break;
+        case '^':
+            printf("\\^{}");
+            break;
+        case '\\':
+            printf("\\textbackslash{}");
+            break;
+        case '~':
+            printf("\\ensuremath{\\sim}");
+            break;
+        case '|':
+            printf("\\textbar{}");
+            break;
+        case '<':
+            printf("\\textless{}");
+            break;
+        case '>':
+            printf("\\textgreater{}");
+            break;
+        default:
+            putchar(*str);
+            break;
+        }
+    str++;
+    }
+}
+
+void print_latex_element(element elt);
+
+/* print_latex_element_list - print a list of elements as LaTeX */
+void print_latex_element_list(item *list) {
+    while (list != NULL) {
+        print_latex_element((*list).val);
+        list = (*list).next;
+    }
+}
+
+/* print_latex_element - print an element as LaTeX */
+void print_latex_element(element elt) {
+    int lev;
+    int i;
+    char *old_charbuf;
+    switch (elt.key) {
+    case SPACE:
+        printf("%s", elt.contents.str);
+        break;
+    case LINEBREAK:
+        printf("\\\\");
+        break;
+    case STR:
+        print_latex_string(elt.contents.str);
+        break;
+    case CODE:
+        printf("\\texttt{");
+        print_latex_string(elt.contents.str);
+        printf("}");
+        break;
+    case HTML:
+        /* don't print HTML */
+        break;
+    case LINK:
+        printf("\\href{%s}{", elt.contents.link.url);
+        print_latex_element_list(elt.contents.link.label);
+        printf("}");
+        break;
+    case IMAGE:
+        printf("\\includegraphics{%s}", elt.contents.link.url);
+        break;
+    case EMPH:
+        printf("\\emph{");
+        print_latex_element_list(elt.contents.list);
+        printf("}");
+        break;
+    case STRONG:
+        printf("\\textbf{");
+        print_latex_element_list(elt.contents.list);
+        printf("}");
+        break;
+    case LIST:
+        print_latex_element_list(elt.contents.list);
+        break;
+    case H1: case H2: case H3:
+        lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
+        pad(2);
+        printf("\\");
+        for (i = elt.key; i > H1; i--)
+            printf("sub");
+        printf("section{");
+        print_latex_element_list(elt.contents.list);
+        printf("}");
+        padded = false;
+        break;
+    case H4: case H5: case H6:
+        pad(2);
+        printf("\\noindent\\textbf{");
+        print_latex_element_list(elt.contents.list);
+        printf("}");
+    case PLAIN:
+        pad(1);
+        print_latex_element_list(elt.contents.list);
+        padded = false;
+        break;
+    case PARA:
+        pad(2);
+        print_latex_element_list(elt.contents.list);
+        padded = false;
+        break;
+    case HRULE:
+        pad(2);
+        printf("\\begin{center}\\rule{3in}{0.4pt}\\end{center}");
+        padded = false;
+        break;
+    case HTMLBLOCK:
+        /* don't print HTML block */
+        break;
+    case VERBATIM:
+        pad(2);
+        printf("\\begin{verbatim}\n");
+        print_latex_string(elt.contents.str);
+        printf("\n\\end{verbatim}");
+        padded = false;
+        break;
+    case BULLETLIST:
+        pad(2);
+        printf("\\begin{itemize}");
+        padded = false;
+        print_latex_element_list(elt.contents.list);
+        pad(1);
+        printf("\\end{itemize}");
+        padded = false;
+        break;
+    case ORDEREDLIST:
+        pad(2);
+        printf("\\begin{itemize}");
+        padded = false;
+        print_latex_element_list(elt.contents.list);
+        pad(1);
+        printf("\\end{itemize}");
+        padded = false;
+        break;
+    case LISTITEM:
+        pad(1);
+        printf("\\item ");
+        padded = true;
+        old_charbuf = charbuf;
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        charbuf = strtok(elt.contents.str, "\001");
+        yyparse();
+        while ((charbuf = strtok(NULL, "\001")))
+            yyparse();
+        charbuf = old_charbuf;
+        padded = false;
+        break;
+    case BLOCKQUOTE:
+        pad(2);
+        printf("\\begin{quote}");
+        old_charbuf = charbuf;
+        charbuf = elt.contents.str;
+        yyparse();
+        charbuf = old_charbuf;
+        printf("\\end{quote}");
+        padded = false;
+        break;
+    case REFERENCE:
+        /* Nonprinting */
+        break;
+    default: 
+        fprintf(stderr, "print_latex_element encountered unknown element key = %d\n", elt.key); 
+        exit(EXIT_FAILURE);
+        break;
+    }
+}
+
+/**********************************************************************
+
+  Auxiliary functions for parsing actions.
+  These make it easier to build up data structures (including lists)
+  in the parsing actions.
+
+ ***********************************************************************/
+
+/* print_element - generic print function, called by parsing action */
+void print_element(element elt) {
+    switch (output_format) {
+    case HTML_FORMAT:
+        print_html_element(elt, false);
+        printf("\n");
+        break;
+    case LATEX_FORMAT:
+        print_latex_element(elt);
+        printf("\n");
+        break;
+    default:
+        fprintf(stderr, "print_element - unknown format = %d\n", elt.key); 
+        exit(EXIT_FAILURE);
+        break;
+    }
+}
+
+/* mk_str - constructor for STR element */
+element mk_str(char *string) {
+    element result;
+    assert(string != NULL);
+    result.key = STR;
+    result.contents.str = strdup(string);
+    return result;
+}
+
+/* mk_list - constructs an element with key 'key' and contents 'lst' (reversed).
+ * This is designed to be used with pushelt to build lists in a parser action. 
+ * The reversing is necessary because pushelt adds to the head of a list. */
+element mk_list(int key, element lst) {
+    element result;
+    result.key = key;
+    result.contents.list = reverse(lst.contents.list);
+    return result;
+}
+
+/* mk_link - constructor for LINK element */
+element mk_link(item *label, char *url, char *title) {
+    element result;
+    result.key = LINK;
+    result.contents.link.label = label;
+    result.contents.link.url = strdup(url);
+    result.contents.link.title = strdup(title);
+    return result;
+}
+
+/* match_inlines - returns true if inline lists match (case-insensitive...) */
+bool match_inlines(item *l1, item *l2) {
+    while (l1 != NULL && l2 != NULL) {
+        if ((*l1).val.key != (*l2).val.key)
+            return false;
+        switch ((*l1).val.key) {
+        case SPACE:
+        case LINEBREAK:
+            break;
+        case CODE:
+        case STR:
+        case HTML:
+            if (strcasecmp((*l1).val.contents.str, (*l2).val.contents.str) == 0)
+                break;
+            else
+                return false;
+        case EMPH:
+        case STRONG:
+        case LIST:
+            if (match_inlines((*l1).val.contents.list, (*l2).val.contents.list))
+                break;
+            else
+                return false;
+        case LINK:
+        case IMAGE:
+            return false;  /* No links or images within links */
+        default:
+            fprintf(stderr, "match_inlines encountered unknown key = %d\n", (*l1).val.key); 
+            exit(EXIT_FAILURE);
+            break;
+        }
+        l1 = (*l1).next;
+        l2 = (*l2).next;
+    }
+    return (l1 == NULL && l2 == NULL);  /* return true if both lists exhausted */
+}
+
+/* find_reference - return true if link found in references matching label.
+ * 'link' is modified with the matching url and title. */
+bool find_reference(link *result, item *label) {
+    item *cur = references;  /* pointer to walk up list of references */
+    link curitem;
+    while (cur != NULL) {
+        curitem = (*cur).val.contents.link;
+        if (match_inlines(label, curitem.label)) {
+            (*result) = curitem;
+            return true;
+        } 
+        else 
+            cur = (*cur).next;
+    }
+    return false;
+}
+
+/**********************************************************************
+
+  Definitions for leg parser generator.
+  YY_INPUT is the function the parser calls to get new input.
+  We take all new input from (static) charbuf.
+
+ ***********************************************************************/
+
+# define YYSTYPE element
+
+#define YY_INPUT(buf, result, max_size)              \
+{                                                    \
+    int yyc;                                         \
+    if (charbuf && *charbuf != '\0') {               \
+        yyc= *charbuf++;                             \
+    } else {                                         \
+        yyc= EOF;                                    \
+    }                                                \
+    result= (EOF == yyc) ? 0 : (*(buf)= yyc, 1);     \
+}
+
+/**********************************************************************
+
+  PEG grammar and parser actions for markdown syntax.
+
+ ***********************************************************************/
+
+%}
+
+Doc =       a:Blocks BlankLine* Eof 
+            { print_element(a); }
+
+Blocks =    a:StartList ( b:Block { pushelt(b, &a); } )*
+            { $$ = mk_list(LIST, a); }
+
+Block =     BlankLine*
+            ( BlockQuote 
+            | Verbatim 
+            | Reference 
+            | Heading 
+            | OrderedList 
+            | BulletList 
+            | HorizontalRule 
+            | HtmlBlock 
+            | Para 
+            | Plain )
+
+Para =      NonindentSpace a:Inlines BlankLine+ 
+            { $$ = a; $$.key = PARA; }
+
+Plain =     a:Inlines
+            { $$ = a; $$.key = PLAIN; }
+
+AtxInline = !Newline !(Sp '#'* Sp Newline) Inline
+
+AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) > 
+            { $$.key = H1 + (strlen(yytext) - 1); }
+ 
+AtxHeading = s:AtxStart Sp a:StartList ( b:AtxInline { pushelt(b, &a); } )+ (Sp '#'* Sp)?  Newline
+            { $$ = mk_list(s.key, a); }
+
+SetextHeading = SetextHeading1 | SetextHeading2
+
+SetextHeadingInline = !Endline Inline
+
+SetextHeading1 =  a:StartList ( b:SetextHeadingInline { pushelt(b, &a); } )+ Newline "===" '='* Newline
+                  { $$ = mk_list(H1, a); }
+
+SetextHeading2 =  a:StartList ( b:SetextHeadingInline { pushelt(b, &a) ; } )+ Newline "---" '-'* Newline
+                  { $$ = mk_list(H2, a); }
+
+Heading = AtxHeading | SetextHeading
+
+BlockQuote = BlockQuoteRaw 
+
+BlockQuoteLine = '>' ' '?  Line
+
+BlockQuoteRaw =  a:StartList ( b:BlockQuoteLine { pushelt(b, &a); } )+
+                 {   char *c = concat_string_list(reverse(a.contents.list));
+                     strcat(c, "\n");  /* Note: an extra byte was allocated for this */
+                     $$.contents.str = c;
+                     $$.key = BLOCKQUOTE; 
+                 }
+
+NonblankIndentedLine = !BlankLine IndentedLine 
+
+VerbatimChunk = a:StartList 
+                ( c:BlankLine { pushelt(c, &a); } )* 
+                ( b:NonblankIndentedLine { pushelt(b, &a); } )+
+                { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+
+Verbatim =     a:StartList ( b:VerbatimChunk { pushelt(b, &a); } )+
+               { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = VERBATIM; }
+
+HorizontalRule = NonindentSpace 
+                 ( '*' Sp '*' Sp '*' (Sp '*')* 
+                 | '-' Sp '-' Sp '-' (Sp '-')*
+                 | '_' Sp '_' Sp '_' (Sp '_')*)
+                 Sp Newline BlankLine+
+                 { $$.key = HRULE; }
+
+Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
+
+BulletList = BulletListTight | BulletListLoose
+
+BulletListTight = a:StartList ( b:BulletListItem { pushelt(b, &a); } )+ BlankLine* !BulletListLoose
+                  { $$ = mk_list(BULLETLIST, a); } 
+
+BulletListLoose = a:StartList 
+                  ( b:BulletListItem BlankLine* 
+                    {   char *bplus = malloc(strlen(b.contents.str) + 3);
+                        strcpy(bplus, b.contents.str);
+                        strcat(bplus, "\n\n");  /* In loose list, \n\n added to end of each item */
+                        b = mk_str(bplus);
+                        b.key = LISTITEM;
+                        pushelt(b, &a); 
+                    } )+  
+                  { $$ = mk_list(BULLETLIST, a); }
+
+BulletListItem = !HorizontalRule Bullet 
+                 a:StartList 
+                 b:BulletListBlock { pushelt(b, &a); } 
+                 ( c:BulletListContinuationBlock { pushelt(c, &a); } )*
+                 { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = LISTITEM; }
+
+BulletListBlock = a:StartList b:Line { pushelt(b, &a); } (c:ListBlockLine { pushelt(c, &a); })*
+                  { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+
+BulletListContinuationBlock = a:StartList 
+                              ( b:BlankLines  
+                                {   if (strlen(b.contents.str) == 0)
+                                         b.contents.str = strdup("\001"); /* block separator */
+                                     pushelt(b, &a); } )
+                              ( Indent c:BulletListBlock { pushelt(c, &a); } )+
+                              { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+
+Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
+
+OrderedList = OrderedListTight | OrderedListLoose
+
+OrderedListTight = a:StartList
+                   ( b:OrderedListItem { pushelt(b, &a); } )+ 
+                   BlankLine* !OrderedListLoose
+                   { $$ = mk_list(ORDEREDLIST, a); } 
+
+OrderedListLoose = a:StartList 
+                   ( b:OrderedListItem BlankLine* 
+                     {  char *bplus = malloc(strlen(b.contents.str) + 3);
+                        strcpy(bplus, b.contents.str);
+                        strcat(bplus, "\n\n"); /* in loose list, add \n\n to end of each block */
+                        b = mk_str(bplus);
+                        b.key = LISTITEM;
+                        pushelt(b, &a); 
+                     } )+
+                   { $$ = mk_list(ORDEREDLIST, a); }
+
+OrderedListItem =   !HorizontalRule Enumerator
+                    a:StartList
+                    b:OrderedListBlock { pushelt(b, &a); } 
+                    ( c:OrderedListContinuationBlock { pushelt(c, &a); } )*
+                    { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = LISTITEM; }
+
+OrderedListBlock =  a:StartList b:Line { pushelt(b, &a); }
+                    ( c:ListBlockLine { pushelt(c, &a); } )*
+                    { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+
+OrderedListContinuationBlock = a:StartList 
+                              ( b:BlankLines 
+                                {   if (strlen(b.contents.str) == 0)
+                                         b.contents.str = strdup("\001");  /* block separator */
+                                     pushelt(b, &a);
+                                } )
+                              ( Indent c:OrderedListBlock { pushelt(c, &a); } )+
+                              { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+
+BlankLines =    < BlankLine* > 
+                { $$ = mk_str(yytext); }
+
+ListBlockLine = !( Indent? ( BulletListItem | OrderedListItem ) ) 
+                !BlankLine
+                OptionallyIndentedLine 
+
+# Parsers for different kinds of block-level HTML content.
+# This is repetitive due to constraints of PEG grammar.
+
+HtmlBlockOpenAddress = '<' Spnl ("address" | "ADDRESS") Spnl HtmlAttribute* '>'
+HtmlBlockCloseAddress = '<' Spnl '/' ("address" | "ADDRESS") Spnl '>'
+
+HtmlBlockOpenBlockquote = '<' Spnl ("blockquote" | "BLOCKQUOTE") Spnl HtmlAttribute* '>'
+HtmlBlockCloseBlockquote = '<' Spnl '/' ("blockquote" | "BLOCKQUOTE") Spnl '>'
+
+HtmlBlockOpenCenter = '<' Spnl ("center" | "CENTER") Spnl HtmlAttribute* '>'
+HtmlBlockCloseCenter = '<' Spnl '/' ("center" | "CENTER") Spnl '>'
+
+HtmlBlockOpenDir = '<' Spnl ("dir" | "DIR") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDir = '<' Spnl '/' ("dir" | "DIR") Spnl '>'
+
+HtmlBlockOpenDiv = '<' Spnl ("div" | "DIV") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDiv = '<' Spnl '/' ("div" | "DIV") Spnl '>'
+
+HtmlBlockOpenDl = '<' Spnl ("dl" | "DL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDl = '<' Spnl '/' ("dl" | "DL") Spnl '>'
+
+HtmlBlockOpenFieldset = '<' Spnl ("fieldset" | "FIELDSET") Spnl HtmlAttribute* '>'
+HtmlBlockCloseFieldset = '<' Spnl '/' ("fieldset" | "FIELDSET") Spnl '>'
+
+HtmlBlockOpenForm = '<' Spnl ("form" | "FORM") Spnl HtmlAttribute* '>'
+HtmlBlockCloseForm = '<' Spnl '/' ("form" | "FORM") Spnl '>'
+
+HtmlBlockOpenH1 = '<' Spnl ("h1" | "H1") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH1 = '<' Spnl '/' ("h1" | "H1") Spnl '>'
+
+HtmlBlockOpenH2 = '<' Spnl ("h2" | "H2") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH2 = '<' Spnl '/' ("h2" | "H2") Spnl '>'
+
+HtmlBlockOpenH3 = '<' Spnl ("h3" | "H3") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH3 = '<' Spnl '/' ("h3" | "H3") Spnl '>'
+
+HtmlBlockOpenH4 = '<' Spnl ("h4" | "H4") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH4 = '<' Spnl '/' ("h4" | "H4") Spnl '>'
+
+HtmlBlockOpenH5 = '<' Spnl ("h5" | "H5") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH5 = '<' Spnl '/' ("h5" | "H5") Spnl '>'
+
+HtmlBlockOpenH6 = '<' Spnl ("h6" | "H6") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH6 = '<' Spnl '/' ("h6" | "H6") Spnl '>'
+
+HtmlBlockOpenHr = '<' Spnl ("hr" | "HR") Spnl HtmlAttribute* '>'
+HtmlBlockCloseHr = '<' Spnl '/' ("hr" | "HR") Spnl '>'
+
+HtmlBlockOpenIsindex = '<' Spnl ("isindex" | "ISINDEX") Spnl HtmlAttribute* '>'
+HtmlBlockCloseIsindex = '<' Spnl '/' ("isindex" | "ISINDEX") Spnl '>'
+
+HtmlBlockOpenMenu = '<' Spnl ("menu" | "MENU") Spnl HtmlAttribute* '>'
+HtmlBlockCloseMenu = '<' Spnl '/' ("menu" | "MENU") Spnl '>'
+
+HtmlBlockOpenNoframes = '<' Spnl ("noframes" | "NOFRAMES") Spnl HtmlAttribute* '>'
+HtmlBlockCloseNoframes = '<' Spnl '/' ("noframes" | "NOFRAMES") Spnl '>'
+
+HtmlBlockOpenNoscript = '<' Spnl ("noscript" | "NOSCRIPT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseNoscript = '<' Spnl '/' ("noscript" | "NOSCRIPT") Spnl '>'
+
+HtmlBlockOpenOl = '<' Spnl ("ol" | "OL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseOl = '<' Spnl '/' ("ol" | "OL") Spnl '>'
+
+HtmlBlockOpenP = '<' Spnl ("p" | "P") Spnl HtmlAttribute* '>'
+HtmlBlockCloseP = '<' Spnl '/' ("p" | "P") Spnl '>'
+
+HtmlBlockOpenPre = '<' Spnl ("pre" | "PRE") Spnl HtmlAttribute* '>'
+HtmlBlockClosePre = '<' Spnl '/' ("pre" | "PRE") Spnl '>'
+
+HtmlBlockOpenTable = '<' Spnl ("table" | "TABLE") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTable = '<' Spnl '/' ("table" | "TABLE") Spnl '>'
+
+HtmlBlockOpenUl = '<' Spnl ("ul" | "UL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseUl = '<' Spnl '/' ("ul" | "UL") Spnl '>'
+
+HtmlBlockOpenDd = '<' Spnl ("dd" | "DD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDd = '<' Spnl '/' ("dd" | "DD") Spnl '>'
+
+HtmlBlockOpenDt = '<' Spnl ("dt" | "DT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDt = '<' Spnl '/' ("dt" | "DT") Spnl '>'
+
+HtmlBlockOpenFrameset = '<' Spnl ("frameset" | "FRAMESET") Spnl HtmlAttribute* '>'
+HtmlBlockCloseFrameset = '<' Spnl '/' ("frameset" | "FRAMESET") Spnl '>'
+
+HtmlBlockOpenLi = '<' Spnl ("li" | "LI") Spnl HtmlAttribute* '>'
+HtmlBlockCloseLi = '<' Spnl '/' ("li" | "LI") Spnl '>'
+
+HtmlBlockOpenTbody = '<' Spnl ("tbody" | "TBODY") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTbody = '<' Spnl '/' ("tbody" | "TBODY") Spnl '>'
+
+HtmlBlockOpenTd = '<' Spnl ("td" | "TD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTd = '<' Spnl '/' ("td" | "TD") Spnl '>'
+
+HtmlBlockOpenTfoot = '<' Spnl ("tfoot" | "TFOOT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTfoot = '<' Spnl '/' ("tfoot" | "TFOOT") Spnl '>'
+
+HtmlBlockOpenTh = '<' Spnl ("th" | "TH") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTh = '<' Spnl '/' ("th" | "TH") Spnl '>'
+
+HtmlBlockOpenThead = '<' Spnl ("thead" | "THEAD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseThead = '<' Spnl '/' ("thead" | "THEAD") Spnl '>'
+
+HtmlBlockOpenTr = '<' Spnl ("tr" | "TR") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTr = '<' Spnl '/' ("tr" | "TR") Spnl '>'
+
+HtmlBlockOpenScript = '<' Spnl ("script" | "SCRIPT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseScript = '<' Spnl '/' ("script" | "SCRIPT") Spnl '>'
+
+HtmlBlockInTags = HtmlBlockOpenAddress (HtmlBlockInTags | !HtmlBlockCloseAddress .)* HtmlBlockCloseAddress
+                | HtmlBlockOpenBlockquote (HtmlBlockInTags | !HtmlBlockCloseBlockquote .)* HtmlBlockCloseBlockquote
+                | HtmlBlockOpenCenter (HtmlBlockInTags | !HtmlBlockCloseCenter .)* HtmlBlockCloseCenter
+                | HtmlBlockOpenDir (HtmlBlockInTags | !HtmlBlockCloseDir .)* HtmlBlockCloseDir
+                | HtmlBlockOpenDiv (HtmlBlockInTags | !HtmlBlockCloseDiv .)* HtmlBlockCloseDiv
+                | HtmlBlockOpenDl (HtmlBlockInTags | !HtmlBlockCloseDl .)* HtmlBlockCloseDl
+                | HtmlBlockOpenFieldset (HtmlBlockInTags | !HtmlBlockCloseFieldset .)* HtmlBlockCloseFieldset
+                | HtmlBlockOpenForm (HtmlBlockInTags | !HtmlBlockCloseForm .)* HtmlBlockCloseForm
+                | HtmlBlockOpenH1 (HtmlBlockInTags | !HtmlBlockCloseH1 .)* HtmlBlockCloseH1
+                | HtmlBlockOpenH2 (HtmlBlockInTags | !HtmlBlockCloseH2 .)* HtmlBlockCloseH2
+                | HtmlBlockOpenH3 (HtmlBlockInTags | !HtmlBlockCloseH3 .)* HtmlBlockCloseH3
+                | HtmlBlockOpenH4 (HtmlBlockInTags | !HtmlBlockCloseH4 .)* HtmlBlockCloseH4
+                | HtmlBlockOpenH5 (HtmlBlockInTags | !HtmlBlockCloseH5 .)* HtmlBlockCloseH5
+                | HtmlBlockOpenH6 (HtmlBlockInTags | !HtmlBlockCloseH6 .)* HtmlBlockCloseH6
+                | HtmlBlockOpenHr (HtmlBlockInTags | !HtmlBlockCloseHr .)* HtmlBlockCloseHr
+                | HtmlBlockOpenIsindex (HtmlBlockInTags | !HtmlBlockCloseIsindex .)* HtmlBlockCloseIsindex
+                | HtmlBlockOpenMenu (HtmlBlockInTags | !HtmlBlockCloseMenu .)* HtmlBlockCloseMenu
+                | HtmlBlockOpenNoframes (HtmlBlockInTags | !HtmlBlockCloseNoframes .)* HtmlBlockCloseNoframes
+                | HtmlBlockOpenNoscript (HtmlBlockInTags | !HtmlBlockCloseNoscript .)* HtmlBlockCloseNoscript | HtmlBlockOpenOl (HtmlBlockInTags | !HtmlBlockCloseOl .)* HtmlBlockCloseOl
+                | HtmlBlockOpenP (HtmlBlockInTags | !HtmlBlockCloseP .)* HtmlBlockCloseP
+                | HtmlBlockOpenPre (HtmlBlockInTags | !HtmlBlockClosePre .)* HtmlBlockClosePre
+                | HtmlBlockOpenTable (HtmlBlockInTags | !HtmlBlockCloseTable .)* HtmlBlockCloseTable
+                | HtmlBlockOpenUl (HtmlBlockInTags | !HtmlBlockCloseUl .)* HtmlBlockCloseUl
+                | HtmlBlockOpenDd (HtmlBlockInTags | !HtmlBlockCloseDd .)* HtmlBlockCloseDd
+                | HtmlBlockOpenDt (HtmlBlockInTags | !HtmlBlockCloseDt .)* HtmlBlockCloseDt
+                | HtmlBlockOpenFrameset (HtmlBlockInTags | !HtmlBlockCloseFrameset .)* HtmlBlockCloseFrameset
+                | HtmlBlockOpenLi (HtmlBlockInTags | !HtmlBlockCloseLi .)* HtmlBlockCloseLi
+                | HtmlBlockOpenTbody (HtmlBlockInTags | !HtmlBlockCloseTbody .)* HtmlBlockCloseTbody
+                | HtmlBlockOpenTd (HtmlBlockInTags | !HtmlBlockCloseTd .)* HtmlBlockCloseTd
+                | HtmlBlockOpenTfoot (HtmlBlockInTags | !HtmlBlockCloseTfoot .)* HtmlBlockCloseTfoot
+                | HtmlBlockOpenTh (HtmlBlockInTags | !HtmlBlockCloseTh .)* HtmlBlockCloseTh
+                | HtmlBlockOpenThead (HtmlBlockInTags | !HtmlBlockCloseThead .)* HtmlBlockCloseThead
+                | HtmlBlockOpenTr (HtmlBlockInTags | !HtmlBlockCloseTr .)* HtmlBlockCloseTr
+                | HtmlBlockOpenScript (HtmlBlockInTags | !HtmlBlockCloseScript .)* HtmlBlockCloseScript
+
+HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) > 
+            BlankLine BlankLine+
+            { $$ = mk_str(yytext); $$.key = HTMLBLOCK; } 
+
+HtmlBlockSelfClosing = '<' Spnl HtmlBlockType Spnl HtmlAttribute* '/' Spnl '>'
+
+HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fieldset" | "form" | "h1" | "h2" | "h3" |
+                "h4" | "h5" | "h6" | "hr" | "isindex" | "menu" | "noframes" | "noscript" | "ol" | "p" | "pre" | "table" |
+                "ul" | "dd" | "dt" | "frameset" | "li" | "tbody" | "td" | "tfoot" | "th" | "thead" | "tr" | "script" |
+                "ADDRESS" | "BLOCKQUOTE" | "CENTER" | "DIR" | "DIV" | "DL" | "FIELDSET" | "FORM" | "H1" | "H2" | "H3" |
+                "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
+                "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
+
+Inlines  =  a:StartList ( !Endline b:Inline { pushelt(b, &a); } 
+                        | c:Endline &Inline { pushelt(c, &a); } )+ Endline?
+            { $$ = mk_list(LIST, a); }
+
+Inline  = Str
+        | LineBreak
+        | Endline
+        | Space
+        | Strong
+        | Emph
+        | Image
+        | Link
+        | Code
+        | RawHtml
+        | Entity
+        | EscapedChar
+        | Symbol
+
+Space = Spacechar+ 
+        { $$.key = SPACE; $$.contents.str = " "; }
+
+Str =   < NormalChar+ > 
+        { $$ = mk_str(yytext); }
+
+EscapedChar =   '\\' !Newline < . > 
+                { $$ = mk_str(yytext); }
+
+Entity =    ( HexEntity | DecEntity | CharEntity )
+            { $$ = mk_str(yytext); $$.key = HTML; }
+
+Endline =   Sp Newline !BlankLine 
+            { $$.key = SPACE; $$.contents.str = "\n"; }
+
+LineBreak = "  " Endline 
+            { $$.key = LINEBREAK; }
+
+Symbol =    < SpecialChar > 
+            { $$ = mk_str(yytext); }
+
+Emph =      EmphStar | EmphUl
+
+EmphStar =  OneStar !Spacechar !Newline
+            a:StartList
+            ( b:EmphInlineStar { pushelt(b, &a); } )+ 
+            OneStar
+            { $$ = mk_list(EMPH, a); }
+
+EmphInlineStar  = StrongStar
+                | !(Spnl OneStar) Inline
+
+EmphUl =    OneUl !Spacechar !Newline
+            a:StartList
+            ( b:EmphInlineUl { pushelt(b, &a); } )+ 
+            OneUl !Alphanumeric
+            { $$ = mk_list(EMPH, a); }
+
+EmphInlineUl    =  StrongUl 
+                | !(Spnl OneUl) Inline
+
+Strong = StrongStar | StrongUl
+
+StrongStar =    TwoStar !Spacechar !Newline
+                a:StartList
+                ( b:StrongInlineStar { pushelt(b, &a); } )+ 
+                TwoStar
+                { $$ = mk_list(STRONG, a); }
+
+StrongInlineStar =  !(Spnl TwoStar) Inline 
+
+StrongUl =  TwoUl !Spacechar !Newline
+            a:StartList
+            ( b:StrongInlineUl { pushelt(b, &a); } )+ 
+            TwoUl
+            { $$ = mk_list(STRONG, a); }
+
+StrongInlineUl = !(Spnl TwoUl) Inline
+
+Image = '!' ( ExplicitLink | ReferenceLink ) 
+        { $$.key = IMAGE; }
+
+Link =  ExplicitLink | ReferenceLink | AutoLink
+
+ReferenceLink = ReferenceLinkDouble | ReferenceLinkSingle
+
+ReferenceLinkDouble =  a:Label < Spnl > b:Label
+                       {   link match;
+                           if (find_reference(&match, b.contents.list))
+                               $$ = mk_link(a.contents.list, match.url, match.title);
+                           else {
+                               /* $$.key == LIST; (not needed because $$.key set by Label match */
+                               $$.contents.list = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext),
+                                           cons(mk_str("["), cons(b, cons(mk_str("]"), NULL)))))));
+                           }
+                       }
+
+ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
+                       {   link match;
+                           if (find_reference(&match, a.contents.list)) {
+                               $$ = mk_link(a.contents.list, match.url, match.title);
+                           } 
+                           else {
+                               $$.key = LIST;
+                               $$.contents.list = cons(mk_str("["), cons(a, cons(mk_str("]"),cons(mk_str(yytext),NULL))));
+                           }
+                       }
+
+ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')' 
+                { $$ = mk_link(l.contents.list, s.contents.str, t.contents.str); }
+
+Source  = ( '<' < SourceContents > '>' | < SourceContents > )
+          { $$ = mk_str(yytext); }
+
+SourceContents = ( ( !'(' !')' !'>' Nonspacechar )+
+                 | '(' SourceContents ')'
+                 )*
+
+Title = ( TitleSingle | TitleDouble | < "" > ) 
+        { $$ = mk_str(yytext); }
+
+TitleSingle = '\'' < ( !( '\'' Sp ( ')' | Newline ) ) !Newline . )* > '\''
+
+TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) !Newline . )* > '"'
+
+AutoLink = AutoLinkUrl | AutoLinkEmail
+
+AutoLinkUrl =   '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>' 
+                { $$ = mk_link(cons(mk_str(yytext), NULL), yytext, ""); }
+
+AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>' 
+                {   char *mailto = malloc(strlen(yytext) + 8);
+                    sprintf(mailto, "mailto:%s", yytext);
+                    $$ = mk_link(cons(mk_str(yytext), NULL), mailto, ""); 
+                } 
+
+Reference = NonindentSpace l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
+            { $$ = mk_link(l.contents.list, s.contents.str, t.contents.str); $$.key = REFERENCE; }
+
+Label = '['
+        a:StartList 
+        ( b:LabelInline { pushelt(b, &a); } )+
+        ']'
+        { $$ = mk_list(LIST, a); }
+
+LabelInline = !']' Inline
+
+RefSrc = < Nonspacechar+ > { $$ = mk_str(yytext); $$.key = HTML; }
+
+RefTitle =  ( RefTitleSingle | RefTitleDouble | RefTitleParens | EmptyTitle )
+            { $$ = mk_str(yytext); }
+
+EmptyTitle = < "" >
+
+RefTitleSingle = '\'' < ( !( '\'' Sp Newline | Newline ) . )* > '\''
+
+RefTitleDouble = '"' < ( !('"' Sp Newline | Newline) . )* > '"'
+
+RefTitleParens = '(' < ( !(')' Sp Newline | Newline) . )* > ')'
+
+References = a:StartList
+             ( b:Reference { pushelt(b, &a); } | SkipBlock )* 
+             { references = a.contents.list; }
+
+Ticks1 = "`"
+Ticks2 = "``"
+Ticks3 = "```"
+Ticks4 = "````"
+Ticks5 = "`````"
+
+Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) Sp )+ > Sp Ticks1
+       | Ticks2 Sp < ( ( !'`' Nonspacechar )+ | !Ticks2 '`'+ | !( Sp Ticks2 ) Sp )+ > Sp Ticks2
+       | Ticks3 Sp < ( ( !'`' Nonspacechar )+ | !Ticks3 '`'+ | !( Sp Ticks3 ) Sp )+ > Sp Ticks3
+       | Ticks4 Sp < ( ( !'`' Nonspacechar )+ | !Ticks4 '`'+ | !( Sp Ticks4 ) Sp )+ > Sp Ticks4
+       | Ticks5 Sp < ( ( !'`' Nonspacechar )+ | !Ticks5 '`'+ | !( Sp Ticks5 ) Sp )+ > Sp Ticks5
+       ) 
+       { $$ = mk_str(yytext); $$.key = CODE; }
+
+RawHtml =   < (HtmlComment | HtmlTag) >
+            { $$ = mk_str(yytext); $$.key = HTML; }
+
+BlankLine =     Sp Newline
+                { $$ = mk_str("\n"); }
+
+Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
+HtmlAttribute = Alphanumeric+ Spnl ('=' Spnl (Quoted | Nonspacechar+))? Spnl
+HtmlComment =   "<!--" (!"-->" .)* "-->"
+HtmlTag =       '<' Spnl '/'? Alphanumeric+ Spnl HtmlAttribute* '/'? Spnl '>'
+Eof =           !.
+Spacechar =     ' ' | '\t'
+Nonspacechar =  !Spacechar !Newline .
+Newline =       '\n' | '\r' '\n'?
+Sp =            Spacechar*
+Spnl =          Sp (Newline Sp)?
+SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '<' | '!' | '\\'
+NormalChar =    !( SpecialChar | Spacechar | Newline ) . 
+Alphanumeric =  [A-Za-z0-9]
+
+HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' > 
+DecEntity =     < '&' '#' [0-9]+ > ';' >
+CharEntity =    < '&' [A-Za-z0-9]+ ';' >
+
+OneStar =       '*' !OneStar
+OneUl   =       '_' !OneUl
+TwoStar =       "**" !TwoStar 
+TwoUl =         "__" !TwoUl
+
+NonindentSpace =    "   " | "  " | " " | ""
+Indent =            "\t" | "    "
+IndentedLine =      Indent Line
+OptionallyIndentedLine = Indent? Line
+
+# StartList starts a list data structure that can be added to with pushelt:
+StartList = &.
+            { $$.key = LIST; $$.contents.list = NULL; }
+
+Line =  ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
+        { $$ = mk_str(yytext); }
+
+SkipBlock = ( !BlankLine Line )+ BlankLine* 
+          | BlankLine+
+
+%%
+
+/**********************************************************************
+
+  Main program and auxiliary functions.
+
+  Reads input from files on command line, or from stdin
+  if no arguments given.  Converts tabs to spaces using TABSTOP.
+  Parses the result for references (References), and then again for
+  conversion to HTML (Doc).  The parser actions print the converted
+  HTML, so there is no separate printing step here.  Character encodings
+  are ignored.
+
+ ***********************************************************************/
+
+#define VERSION "0.1"
+#define COPYRIGHT "Copyright (c) 2008 John MacFarlane.\n" \
+                  "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n" \
+                  "This is free software: you are free to change and redistribute it.\n" \
+                  "There is NO WARRANTY, to the extent permitted by law."
+
+#define TABSTOP 4
+#define INCREMENT 4096  /* size of chunks in which to allocate memory */
+
+/* print version and copyright information */
+void version(char *progname)
+{
+  printf("%s version %s\n"
+         "%s\n",
+         progname,
+         VERSION,
+         COPYRIGHT);
+}
+
+/* print a help summary */
+void help(char *progname)
+{
+  printf("Usage: %s [options] [FILE]...\n"
+         "Options:\n"
+         "-t FORMAT or --to FORMAT    convert to FORMAT (default is html)\n"
+         "-o FILE or --output FILE    send output to FILE (default is stdout)\n"
+         "-V or --version             print program version and exit\n"
+         "-h or --help                show this message and exit\n"
+         "\n"
+         "This program reads the specified FILEs (or stdin if none are given)\n"
+         "and converts them to FORMAT using markdown syntax conventions.\n"
+         "Supported FORMATs:  html latex\n",
+         progname);
+}
+
+/* print usage information to stderr */
+void usage(char *progname)
+{
+  fprintf(stderr,
+          "Summary: %s [--help] [--version] [options] [FILE]...\n",
+          progname);
+}
+
+int main(int argc, char * argv[]) {
+
+    char *progname = argv[0];
+    int opt;
+    /* the output filename is initially 0 (a.k.a. stdout) */
+    char *outfilename = 0;
+    char *format = 0;
+    
+    output_format = HTML_FORMAT;
+
+    char *shortopts = "Vho:t:";
+    /* long options list */
+    struct option longopts[] =
+    {
+      /* name,        has_arg,           flag, val */ /* longind */
+      { "version",    no_argument,       0,    'V' }, /*       0 */
+      { "help",       no_argument,       0,    'h' }, /*       1 */
+      { "output",     required_argument, 0,    'o' }, /*       2 */
+      { "to",         required_argument, 0,    't' }, /*       3 */
+      /* end-of-list marker */
+      { 0, 0, 0, 0 }
+    };
+    /* long option list index */
+    int longind = 0;
+
+    /* parse all options from the command line */
+    while ((opt = getopt_long_only(argc, argv, shortopts, longopts, &longind)) != -1)
+        switch (opt) {
+        case 'V': /* -version */
+            version(progname);
+            return 0;
+        case 'h': /* -version */
+            help(progname);
+            return 0;
+        case 't': /* -to */
+            format = optarg;
+            if (strcmp(format, "html") == 0)
+                output_format = HTML_FORMAT;
+            else if (strcmp(format, "latex") == 0)
+                output_format = LATEX_FORMAT;
+            else {
+                fprintf(stderr, "%s: Unknown output format '%s'\n", progname, format);
+                exit(EXIT_FAILURE);
+            }   
+            break;
+        case 'o': /* -output=FILE */
+            outfilename = optarg;
+            /* we allow "-" as a synonym for stdout here */
+            if (! strcmp(optarg, "-"))
+            {
+                outfilename = 0;
+            }
+            break;
+        default: /* something unexpected has happened */
+            usage(progname);
+            return 1;
+        }
+
+    /* re-open stdout to outfilename, if requested */
+    if (outfilename)
+        if (! freopen(outfilename, "w", stdout)) {
+            perror(outfilename);
+            return 1;
+        }
+
+    int numargs;            /* number of filename arguments */
+    FILE *inputs[argc];     /* array of file pointers for inputs */
+    int lastinp;            /* index of last file in inputs */
+    int i;
+    int buflength = 0;
+    int maxlength = INCREMENT;
+    char *inputbuf;
+    inputbuf = malloc(INCREMENT);
+    FILE *input;
+    char *curchar = inputbuf;
+    int charstotab;
+     
+    numargs = argc - optind; 
+    if (numargs == 0) {        /* use stdin if no files specified */
+       inputs[0] = stdin;
+       lastinp = 0;
+    }
+    else {                  /* open all the files on command line */
+       for (i = 0; i < numargs; i++)
+            if ((inputs[i] = fopen(argv[optind + i], "r")) == NULL) {
+                perror(argv[optind + i]);
+                exit(EXIT_FAILURE);
+            }
+       lastinp = i - 1;
+    }
+   
+    for (i=0; i <= lastinp; i++) {
+        input = inputs[i];
+        charstotab = TABSTOP;
+        while ((*curchar = fgetc(input)) != EOF) {
+            switch (*curchar) {
+            case '\t':
+                while (charstotab > 0)
+                   *curchar = ' ', curchar++, buflength++, charstotab--; 
+                break;
+            case '\n':
+                curchar++, buflength++, charstotab = TABSTOP;
+                break;
+            default:
+                curchar++, buflength++, charstotab--; 
+            }
+            if (charstotab == 0)
+                charstotab = 4;
+            if (buflength > maxlength - TABSTOP - 3) {
+                maxlength += INCREMENT;
+                inputbuf = realloc(inputbuf, maxlength);
+                curchar = inputbuf + buflength;
+                if (inputbuf == NULL) {
+                    perror(progname);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+        fclose(input);
+    }
+
+    strcat(inputbuf, strdup("\n\n"));   /* add newlines to end to match Markdown.pl behavior */
+
+    charbuf = inputbuf;
+    yyparsefrom(yy_References);    /* first pass, just to collect references */
+    
+    charbuf = inputbuf;            /* go back to beginning, to convert */
+    yyparsefrom(yy_Doc);           /* this prints contents as HTML */
+
+    return(EXIT_SUCCESS);
+}
+

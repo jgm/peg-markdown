@@ -1,0 +1,70 @@
+What is this?
+=============
+
+This is an implementation of John Gruber's markdown
+(http://daringfireball.net/projects/markdown/) in C.
+
+It uses a PEG grammar to define the syntax. This should allow easy
+modification and extension.
+
+It is pretty fast. A 179K text file that takes 5.7 seconds for
+Markdown.pl (v. 1.0.1) to parse takes only 0.13 seconds for this
+markdown.  It does, however, use a fair amount of memory.
+
+Installing
+==========
+
+The program is written in portable ANSI C. For convenience, two required
+dependencies are included in the source directory:
+
+  * bsittler's my_getopt option parsing library
+    (http://www.geocities.com/bsittler/)
+
+  * Ian Piumarta's peg/leg PEG parser generator
+    (http://piumarta.com/software/peg/)
+
+These will be built automatically.
+
+To make the markdown executable:
+
+    make
+
+To run John Gruber's markdown 1.0.3 test suite:
+
+    make test
+
+The test suite will fail on one of the list tests.  Here's why.
+Markdown.pl encloses "item one" in the following list in <p> tags:
+
+    1.  item one
+        * subitem
+        * subitem
+    
+    2.  item two
+
+    3.  item three
+
+Here we do not enclose "item one" in <p> tags unless it has a following
+blank line. This is consistent with the official markdown syntax
+description, and lets the author of the document choose whether <p> tags
+are desired.
+
+Hacking
+=======
+
+It should be pretty easy to modify markdown.leg to produce other formats
+than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
+
+  * To add an output format, add the format to 'formats', modify 'print_element',
+    and add functions corresponding to 'print_html_string', 'print_html_element',
+    and 'print_html_element_list'.  Also add an option in the main loop that selects
+    the new format.
+
+  * To add syntax extensions, define them in the PEG grammar (bottom part
+    of markdown.leg), using existing definitions as a guide. If you need
+    to add new types of elements (e.g. FOOTNOTE), modify the 'keys'
+    enum.
+
+  * Note:  Avoid using [^abc] character classes in the grammar, because they
+    cause problems with non-ascii input.  Instead, use:  ( !'a' !'b' !'c' . )
+
