@@ -28,6 +28,10 @@ To make the 'markdown' executable:
 
     make
 
+Then, for usage instructions:
+
+    ./markdown -h
+
 To run John Gruber's Markdown 1.0.3 test suite:
 
     make test
