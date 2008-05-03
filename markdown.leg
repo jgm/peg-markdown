@@ -1017,8 +1017,13 @@ EscapedChar =   '\\' !Newline < . >
 Entity =    ( HexEntity | DecEntity | CharEntity )
             { $$ = mk_str(yytext); $$.key = HTML; }
 
-Endline =   Sp Newline !BlankLine 
-            { $$.key = SPACE; $$.contents.str = "\n"; }
+Endline =   TerminalEndline | NormalEndline
+
+NormalEndline =   Sp Newline !BlankLine
+                  { $$.key = SPACE; $$.contents.str = "\n"; }
+
+TerminalEndline = Sp Newline Eof
+                  { $$.key = SPACE; $$.contents.str = ""; }
 
 LineBreak = "  " Endline 
             { $$.key = LINEBREAK; }
