@@ -435,7 +435,7 @@ void print_latex_element(element elt) {
         printf("%s", elt.contents.str);
         break;
     case LINEBREAK:
-        printf("\\\\");
+        printf("\\\\\n");
         break;
     case STR:
         print_latex_string(elt.contents.str);
@@ -471,67 +471,49 @@ void print_latex_element(element elt) {
         break;
     case H1: case H2: case H3:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
-        pad(2);
         printf("\\");
         for (i = elt.key; i > H1; i--)
             printf("sub");
         printf("section{");
         print_latex_element_list(elt.contents.list);
-        printf("}");
-        padded = false;
+        printf("}\n\n");
         break;
     case H4: case H5: case H6:
-        pad(2);
         printf("\\noindent\\textbf{");
         print_latex_element_list(elt.contents.list);
-        printf("}");
+        printf("}\n");
     case PLAIN:
-        pad(1);
         print_latex_element_list(elt.contents.list);
-        padded = false;
+        printf("\n");
         break;
     case PARA:
-        pad(2);
         print_latex_element_list(elt.contents.list);
-        padded = false;
+        printf("\n\n"); 
         break;
     case HRULE:
-        pad(2);
-        printf("\\begin{center}\\rule{3in}{0.4pt}\\end{center}");
-        padded = false;
+        printf("\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");
         break;
     case HTMLBLOCK:
         /* don't print HTML block */
         break;
     case VERBATIM:
-        pad(2);
         printf("\\begin{verbatim}\n");
         print_latex_string(elt.contents.str);
-        printf("\n\\end{verbatim}");
-        padded = false;
+        printf("\n\\end{verbatim}\n");
         break;
     case BULLETLIST:
-        pad(2);
-        printf("\\begin{itemize}");
+        printf("\\begin{itemize}\n");
         padded = false;
         print_latex_element_list(elt.contents.list);
-        pad(1);
-        printf("\\end{itemize}");
-        padded = false;
+        printf("\\end{itemize}\n\n");
         break;
     case ORDEREDLIST:
-        pad(2);
-        printf("\\begin{itemize}");
-        padded = false;
+        printf("\\begin{enumerate}\n");
         print_latex_element_list(elt.contents.list);
-        pad(1);
-        printf("\\end{itemize}");
-        padded = false;
+        printf("\\end{enumerate}\n\n");
         break;
     case LISTITEM:
-        pad(1);
         printf("\\item ");
-        padded = true;
         old_charbuf = charbuf;
         /* \001 is used to indicate boundaries between nested lists when there
          * is no blank line.  We split the string by \001 and parse
@@ -541,17 +523,14 @@ void print_latex_element(element elt) {
         while ((charbuf = strtok(NULL, "\001")))
             yyparse();
         charbuf = old_charbuf;
-        padded = false;
         break;
     case BLOCKQUOTE:
-        pad(2);
         printf("\\begin{quote}");
         old_charbuf = charbuf;
         charbuf = elt.contents.str;
         yyparse();
         charbuf = old_charbuf;
-        printf("\\end{quote}");
-        padded = false;
+        printf("\\end{quote}\n\n");
         break;
     case REFERENCE:
         /* Nonprinting */
@@ -576,11 +555,9 @@ void print_element(element elt) {
     switch (output_format) {
     case HTML_FORMAT:
         print_html_element(elt, false);
-        printf("\n");
         break;
     case LATEX_FORMAT:
         print_latex_element(elt);
-        printf("\n");
         break;
     default:
         fprintf(stderr, "print_element - unknown format = %d\n", elt.key); 
@@ -1416,6 +1393,7 @@ int main(int argc, char * argv[]) {
     
     charbuf = inputbuf;            /* go back to beginning, to convert */
     yyparsefrom(yy_Doc);           /* this prints contents as HTML */
+    printf("\n");
 
     return(EXIT_SUCCESS);
 }
