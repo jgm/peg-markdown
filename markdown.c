@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "my_getopt-1.5/getopt.h"
 #include "markdown_peg.h"
+#include "my_getopt-1.5/getopt.h"
 
 extern char *strdup(const char *string);
 
@@ -30,14 +30,15 @@ extern char *strdup(const char *string);
 
  ***********************************************************************/
 
-static bool padded = true;     /* If true, no blank line needed before next output */
+static int padded = 2;      /* Number of newlines after last output.
+                               Starts at 2 so no newlines are needed at start.
+                               */
 
-/* pad - add a blank line if one is needed */
+/* pad - add newlines if needed */
 void pad(int num) {
-    if (!padded)
-        while (num-- > 0)
-            printf("\n");
-    padded = true;
+    while (num-- > padded)
+        printf("\n");
+    padded = num;
 }
 
 /**********************************************************************
@@ -157,54 +158,54 @@ void print_html_element(element elt, bool obfuscate) {
         printf("<h%1d>", lev);
         print_html_element_list(elt.contents.list, obfuscate);
         printf("</h%1d>", lev);
-        padded = false;
+        padded = 0;
         break;
     case PLAIN:
         pad(1);
         print_html_element_list(elt.contents.list, obfuscate);
-        padded = false;
+        padded = 0;
         break;
     case PARA:
         pad(2);
         printf("<p>");
         print_html_element_list(elt.contents.list, obfuscate);
         printf("</p>");
-        padded = false;
+        padded = 0;
         break;
     case HRULE:
         pad(2);
         printf("<hr />");
-        padded = false;
+        padded = 0;
         break;
     case HTMLBLOCK:
         pad(2);
         printf(elt.contents.str);
-        padded = false;
+        padded = 0;
         break;
     case VERBATIM:
         pad(2);
         printf("<pre><code>");
         print_html_string(elt.contents.str, obfuscate);
         printf("</code></pre>");
-        padded = false;
+        padded = 0;
         break;
     case BULLETLIST:
         pad(2);
         printf("<ul>");
-        padded = false;
+        padded = 0;
         print_html_element_list(elt.contents.list, obfuscate);
         pad(1);
         printf("</ul>");
-        padded = false;
+        padded = 0;
         break;
     case ORDEREDLIST:
         pad(2);
         printf("<ol>");
-        padded = false;
+        padded = 0;
         print_html_element_list(elt.contents.list, obfuscate);
         pad(1);
         printf("</ol>");
-        padded = false;
+        padded = 0;
         break;
     case LISTITEM:
         pad(1);
@@ -218,14 +219,14 @@ void print_html_element(element elt, bool obfuscate) {
         while ((contents = strtok(NULL, "\001")))
             print_html_element(markdown(contents), obfuscate);
         printf("</li>");
-        padded = false;
+        padded = 0;
         break;
     case BLOCKQUOTE:
         pad(2);
         printf("<blockquote>");
         print_html_element(markdown(elt.contents.str), obfuscate);
         printf("</blockquote>");
-        padded = false;
+        padded = 0;
         break;
     case REFERENCE:
         /* Nonprinting */
@@ -365,7 +366,7 @@ void print_latex_element(element elt) {
         break;
     case BULLETLIST:
         printf("\\begin{itemize}\n");
-        padded = false;
+        padded = 0;
         print_latex_element_list(elt.contents.list);
         printf("\\end{itemize}\n\n");
         break;
