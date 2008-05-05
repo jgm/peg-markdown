@@ -2,7 +2,7 @@ ALL : markdown
 
 PROGRAM=markdown
 MYGETOPTDIR=my_getopt-1.5
-OBJS=$(MYGETOPTDIR)/my_getopt.o
+OBJS=$(MYGETOPTDIR)/my_getopt.o markdown_peg.o
 PEGDIR=peg-0.1.4
 LEG=$(PEGDIR)/leg
 
@@ -15,14 +15,14 @@ $(LEG):
 markdown : markdown.c $(OBJS)
 	$(CC) -Wall -O3 -ansi -o $@ $(OBJS) $<
 
-markdown.c : markdown.leg $(LEG)
+markdown_peg.c : markdown_peg.leg $(LEG)
 	$(LEG) -o $@ $<
 
 .PHONY: clean test
 
 clean:
-	rm markdown.c $(PROGRAM) $(OBJS); \
-	make -C $(PEGDIR) spotless
+	rm markdown_peg.c $(PROGRAM) $(OBJS); \
+	make -C $(PEGDIR) clean
 
 test: $(PROGRAM)
 	cd MarkdownTest_1.0.3; \
