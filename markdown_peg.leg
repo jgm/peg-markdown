@@ -506,7 +506,7 @@ HtmlBlockInTags = HtmlBlockOpenAddress (HtmlBlockInTags | !HtmlBlockCloseAddress
                 | HtmlBlockOpenScript (HtmlBlockInTags | !HtmlBlockCloseScript .)* HtmlBlockCloseScript
 
 HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) > 
-            BlankLine BlankLine+
+            BlankLine+
             { $$ = mk_str(yytext); $$.key = HTMLBLOCK; } 
 
 HtmlBlockSelfClosing = '<' Spnl HtmlBlockType Spnl HtmlAttribute* '/' Spnl '>'
@@ -706,7 +706,7 @@ BlankLine =     Sp Newline
                 { $$ = mk_str("\n"); }
 
 Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
-HtmlAttribute = Alphanumeric+ Spnl ('=' Spnl (Quoted | Nonspacechar+))? Spnl
+HtmlAttribute = (Alphanumeric | '-')+ Spnl ('=' Spnl (Quoted | Nonspacechar+))? Spnl
 HtmlComment =   "<!--" (!"-->" .)* "-->"
 HtmlTag =       '<' Spnl '/'? Alphanumeric+ Spnl HtmlAttribute* '/'? Spnl '>'
 Eof =           !.
