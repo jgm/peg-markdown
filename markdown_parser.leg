@@ -29,10 +29,10 @@ int yyparse(void);
  ***********************************************************************/
 
 /* cons - cons an element onto a list, returning pointer to new head */
-static item *cons(element new, item *list) {
-    item *head = malloc(sizeof(item));
+static element *cons(element new, element *list) {
+    element *head = malloc(sizeof(element));
     assert(head != NULL);
-    (*head).val = new;
+    *head = new;
     (*head).next = list;
     return head;
 }
@@ -44,35 +44,35 @@ static void pushelt(element new, element *lst) {
 }
 
 /* reverse - reverse a list, returning pointer to new list */
-static item *reverse(item *list) {
-    item *new = NULL;
+static element *reverse(element *list) {
+    element *new = NULL;
     while (list != NULL) {
-        new = cons((*list).val, new);
+        new = cons(*list, new);
         list = (*list).next;
     }
     return new;
 }
 
-/* length_of_strings - returns sum of length of strings in an item list of STR elements */
-static int length_of_strings(item *list) {
+/* length_of_strings - returns sum of length of strings in a list of STR elements */
+static int length_of_strings(element *list) {
     int len = 0;
     while (list != NULL) {
-        assert((*list).val.key == STR);
-        assert((*list).val.contents.str != NULL);
-        len += strlen((*list).val.contents.str);
+        assert((*list).key == STR);
+        assert((*list).contents.str != NULL);
+        len += strlen((*list).contents.str);
         list = (*list).next;
     }
     return len;
 }
 
 /* concat_string_list - concatenates string contents of list of STR elements */
-static char *concat_string_list(item *list) {
+static char *concat_string_list(element *list) {
     char *result = malloc(length_of_strings(list) + 2); /* leave room for optional \n and \0  */
     *result = '\0';
     while (list != NULL) {
-        assert((*list).val.key == STR);
-        assert((*list).val.contents.str != NULL);
-        result = strcat(result, (*list).val.contents.str);
+        assert((*list).key == STR);
+        assert((*list).contents.str != NULL);
+        result = strcat(result, (*list).contents.str);
         list = (*list).next;
     }
     return result;
@@ -85,7 +85,7 @@ static char *concat_string_list(item *list) {
  ***********************************************************************/
 
 static char *charbuf = "";     /* Buffer of characters to be parsed. */
-static item *references;       /* List of link references found. */
+static element *references;       /* List of link references found. */
 static int output_format;
 static element parse_result;   /* Results of parse. */
 static int syntax_extensions;  /* Syntax extensions selected. */
@@ -118,7 +118,7 @@ static element mk_list(int key, element lst) {
 }
 
 /* mk_link - constructor for LINK element */
-static element mk_link(item *label, char *url, char *title) {
+static element mk_link(element *label, char *url, char *title) {
     element result;
     result.key = LINK;
     result.contents.link.label = label;
@@ -128,25 +128,25 @@ static element mk_link(item *label, char *url, char *title) {
 }
 
 /* match_inlines - returns true if inline lists match (case-insensitive...) */
-static bool match_inlines(item *l1, item *l2) {
+static bool match_inlines(element *l1, element *l2) {
     while (l1 != NULL && l2 != NULL) {
-        if ((*l1).val.key != (*l2).val.key)
+        if ((*l1).key != (*l2).key)
             return false;
-        switch ((*l1).val.key) {
+        switch ((*l1).key) {
         case SPACE:
         case LINEBREAK:
             break;
         case CODE:
         case STR:
         case HTML:
-            if (strcasecmp((*l1).val.contents.str, (*l2).val.contents.str) == 0)
+            if (strcasecmp((*l1).contents.str, (*l2).contents.str) == 0)
                 break;
             else
                 return false;
         case EMPH:
         case STRONG:
         case LIST:
-            if (match_inlines((*l1).val.contents.list, (*l2).val.contents.list))
+            if (match_inlines((*l1).contents.list, (*l2).contents.list))
                 break;
             else
                 return false;
@@ -154,7 +154,7 @@ static bool match_inlines(item *l1, item *l2) {
         case IMAGE:
             return false;  /* No links or images within links */
         default:
-            fprintf(stderr, "match_inlines encountered unknown key = %d\n", (*l1).val.key); 
+            fprintf(stderr, "match_inlines encountered unknown key = %d\n", (*l1).key); 
             exit(EXIT_FAILURE);
             break;
         }
@@ -166,11 +166,11 @@ static bool match_inlines(item *l1, item *l2) {
 
 /* find_reference - return true if link found in references matching label.
  * 'link' is modified with the matching url and title. */
-static bool find_reference(link *result, item *label) {
-    item *cur = references;  /* pointer to walk up list of references */
+static bool find_reference(link *result, element *label) {
+    element *cur = references;  /* pointer to walk up list of references */
     link curitem;
     while (cur != NULL) {
-        curitem = (*cur).val.contents.link;
+        curitem = (*cur).contents.link;
         if (match_inlines(label, curitem.label)) {
             (*result) = curitem;
             return true;
@@ -293,7 +293,7 @@ BulletListLoose = a:StartList
                   ( b:BulletListItem BlankLine* 
                     {   char *bplus = malloc(strlen(b.contents.str) + 3);
                         strcpy(bplus, b.contents.str);
-                        strcat(bplus, "\n\n");  /* In loose list, \n\n added to end of each item */
+                        strcat(bplus, "\n\n");  /* In loose list, \n\n added to end of each element */
                         b = mk_str(bplus);
                         b.key = LISTITEM;
                         pushelt(b, &a); 

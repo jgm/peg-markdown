@@ -10,18 +10,18 @@ extern char *strdup(const char *string);
 
 /* Information (label, URL and title) for a link. */
 struct Link {
-    struct ElementListItem   *label;
-    char                     *url;
-    char                     *title;    
+    struct Element   *label;
+    char             *url;
+    char             *title;    
 };
 
 typedef struct Link link;
 
 /* Union for contents of an Element (string, list, or link). */
 union Contents {
-    char                   *str;
-    struct ElementListItem *list;
-    struct Link            link;
+    char             *str;
+    struct Element   *list;
+    struct Link      link;
 };
 
 /* Types of semantic values returned by parsers. */ 
@@ -53,17 +53,10 @@ enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, 
 struct Element {
     int            key;
     union Contents contents;
+    struct Element *next;
 };
 
 typedef struct Element element;
-
-/* Node in linked list of Elements. */
-struct ElementListItem {
-    element                 val;
-    struct ElementListItem  *next;    
-};
-
-typedef struct ElementListItem item;
 
 enum markdown_extensions { 
     EXT_SMART            = 1
@@ -79,14 +72,14 @@ enum formats { HTML_FORMAT,
 
 void print_html_string(char *str, bool obfuscate);
 void print_html_element(element elt, bool obfuscate);
-void print_html_element_list(item *list, bool obfuscate);
+void print_html_element_list(element *list, bool obfuscate);
 void print_latex_string(char *str);
 void print_latex_element(element elt);
-void print_latex_element_list(item *list);
+void print_latex_element_list(element *list);
 void print_latex_element(element elt);
 void print_groff_string(char *str);
 void print_groff_mm_element(element elt, int count);
-void print_groff_mm_element_list(item *list);
+void print_groff_mm_element_list(element *list);
 void print_groff_mm_element(element elt, int count);
 void print_element(element elt, int format);
 

@@ -81,9 +81,9 @@ void print_html_string(char *str, bool obfuscate) {
 }
 
 /* print_html_element_list - print a list of elements as HTML */
-void print_html_element_list(item *list, bool obfuscate) {
+void print_html_element_list(element *list, bool obfuscate) {
     while (list != NULL) {
-        print_html_element((*list).val, obfuscate);
+        print_html_element(*list, obfuscate);
         list = (*list).next;
     }
 }
@@ -281,9 +281,9 @@ void print_latex_string(char *str) {
 }
 
 /* print_latex_element_list - print a list of elements as LaTeX */
-void print_latex_element_list(item *list) {
+void print_latex_element_list(element *list) {
     while (list != NULL) {
-        print_latex_element((*list).val);
+        print_latex_element(*list);
         list = (*list).next;
     }
 }
@@ -427,10 +427,10 @@ void print_groff_string(char *str) {
 }
 
 /* print_groff_mm_element_list - print a list of elements as groff ms */
-void print_groff_mm_element_list(item *list) {
+void print_groff_mm_element_list(element *list) {
     int count = 1;
     while (list != NULL) {
-        print_groff_mm_element((*list).val, count);
+        print_groff_mm_element(*list, count);
         list = (*list).next;
         count++;
     }
