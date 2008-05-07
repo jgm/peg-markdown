@@ -221,6 +221,7 @@ int main(int argc, char * argv[]) {
                 }
             }
         }
+        *curchar = 0;  /* terminate string (other EOF character) */
         fclose(input);
     }
 
