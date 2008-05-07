@@ -745,7 +745,7 @@ SkipBlock = ( !BlankLine Line )+ BlankLine*
 
 %%
 
-element markdown(char *string) {
+element markdown(int extensions, char *string) {
 
     char *oldcharbuf;
     oldcharbuf = charbuf;

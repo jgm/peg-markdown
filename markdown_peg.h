@@ -64,5 +64,10 @@ struct ElementListItem {
 
 typedef struct ElementListItem item;
 
-element markdown(char *string);
+enum markdown_extensions { 
+    EXT_SMART_QUOTES     = 1,
+    EXT_SMART_DASHES     = 2
+};  
+
+element markdown(int extensions, char *string);
 

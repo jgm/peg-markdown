@@ -23,6 +23,7 @@
 #include "my_getopt-1.5/getopt.h"
 
 extern char *strdup(const char *string);
+static int extensions = 0;
 
 /**********************************************************************
 
@@ -215,16 +216,16 @@ void print_html_element(element elt, bool obfuscate) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_html_element(markdown(contents), obfuscate);
+        print_html_element(markdown(extensions, contents), obfuscate);
         while ((contents = strtok(NULL, "\001")))
-            print_html_element(markdown(contents), obfuscate);
+            print_html_element(markdown(extensions, contents), obfuscate);
         printf("</li>");
         padded = 0;
         break;
     case BLOCKQUOTE:
         pad(2);
         printf("<blockquote>");
-        print_html_element(markdown(elt.contents.str), obfuscate);
+        print_html_element(markdown(extensions, elt.contents.str), obfuscate);
         printf("</blockquote>");
         padded = 0;
         break;
@@ -381,13 +382,13 @@ void print_latex_element(element elt) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_latex_element(markdown(contents));
+        print_latex_element(markdown(extensions, contents));
         while ((contents = strtok(NULL, "\001")))
-            print_latex_element(markdown(contents));
+            print_latex_element(markdown(extensions, contents));
         break;
     case BLOCKQUOTE:
         printf("\\begin{quote}");
-        print_latex_element(markdown(elt.contents.str));
+        print_latex_element(markdown(extensions, elt.contents.str));
         printf("\\end{quote}\n\n");
         break;
     case REFERENCE:
@@ -552,10 +553,10 @@ void print_groff_mm_element(element elt, int count) {
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
         padded = 2;
-        print_groff_mm_element(markdown(contents), 1);
+        print_groff_mm_element(markdown(extensions, contents), 1);
         while ((contents = strtok(NULL, "\001"))) {
             padded = 2;
-            print_groff_mm_element(markdown(contents), 1);
+            print_groff_mm_element(markdown(extensions, contents), 1);
         }
         in_list_item = false;
         break;
@@ -563,7 +564,7 @@ void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".DS I\n");
         padded = 2;
-        print_groff_mm_element(markdown(elt.contents.str), 1);
+        print_groff_mm_element(markdown(extensions, elt.contents.str), 1);
         pad(1);
         printf(".DE");
         padded = 0;
@@ -764,7 +765,7 @@ int main(int argc, char * argv[]) {
 
     strcat(inputbuf, strdup("\n\n"));   /* add newlines to end to match Markdown.pl behavior */
 
-    element parsed_input = markdown(inputbuf);
+    element parsed_input = markdown(extensions, inputbuf);
 
     switch (output_format) {
     case HTML_FORMAT:
