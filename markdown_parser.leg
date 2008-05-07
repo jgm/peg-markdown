@@ -40,7 +40,7 @@ static element *cons(element new, element *list) {
 /* pushelt - push an element onto the (list) contents of an element */
 static void pushelt(element new, element *lst) {
     assert((*lst).key == LIST);
-    (*lst).contents.list = cons(new, (*lst).contents.list);
+    (*lst).children = cons(new, (*lst).children);
 }
 
 /* reverse - reverse a list, returning pointer to new list */
@@ -107,13 +107,13 @@ static element mk_str(char *string) {
     return result;
 }
 
-/* mk_list - constructs an element with key 'key' and contents 'lst' (reversed).
+/* mk_list - constructs an element with key 'key' and children from 'lst' (reversed).
  * This is designed to be used with pushelt to build lists in a parser action. 
  * The reversing is necessary because pushelt adds to the head of a list. */
 static element mk_list(int key, element lst) {
     element result;
     result.key = key;
-    result.contents.list = reverse(lst.contents.list);
+    result.children = reverse(lst.children);
     return result;
 }
 
@@ -146,7 +146,7 @@ static bool match_inlines(element *l1, element *l2) {
         case EMPH:
         case STRONG:
         case LIST:
-            if (match_inlines((*l1).contents.list, (*l2).contents.list))
+            if (match_inlines((*l1).children, (*l2).children))
                 break;
             else
                 return false;
@@ -259,7 +259,7 @@ BlockQuote = BlockQuoteRaw
 BlockQuoteLine = '>' ' '?  Line
 
 BlockQuoteRaw =  a:StartList ( b:BlockQuoteLine { pushelt(b, &a); } )+
-                 {   char *c = concat_string_list(reverse(a.contents.list));
+                 {   char *c = concat_string_list(reverse(a.children));
                      strcat(c, "\n");  /* Note: an extra byte was allocated for this */
                      $$.contents.str = c;
                      $$.key = BLOCKQUOTE; 
@@ -270,10 +270,10 @@ NonblankIndentedLine = !BlankLine IndentedLine
 VerbatimChunk = a:StartList 
                 ( c:BlankLine { pushelt(c, &a); } )* 
                 ( b:NonblankIndentedLine { pushelt(b, &a); } )+
-                { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+                { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 Verbatim =     a:StartList ( b:VerbatimChunk { pushelt(b, &a); } )+
-               { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = VERBATIM; }
+               { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = VERBATIM; }
 
 HorizontalRule = NonindentSpace 
                  ( '*' Sp '*' Sp '*' (Sp '*')* 
@@ -304,10 +304,10 @@ BulletListItem = !HorizontalRule Bullet
                  a:StartList 
                  b:BulletListBlock { pushelt(b, &a); } 
                  ( c:BulletListContinuationBlock { pushelt(c, &a); } )*
-                 { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = LISTITEM; }
+                 { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
 
 BulletListBlock = a:StartList b:Line { pushelt(b, &a); } (c:ListBlockLine { pushelt(c, &a); })*
-                  { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+                  { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 BulletListContinuationBlock = a:StartList 
                               ( b:BlankLines  
@@ -315,7 +315,7 @@ BulletListContinuationBlock = a:StartList
                                          b.contents.str = strdup("\001"); /* block separator */
                                      pushelt(b, &a); } )
                               ( Indent c:BulletListBlock { pushelt(c, &a); } )+
-                              { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+                              { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
@@ -341,11 +341,11 @@ OrderedListItem =   !HorizontalRule Enumerator
                     a:StartList
                     b:OrderedListBlock { pushelt(b, &a); } 
                     ( c:OrderedListContinuationBlock { pushelt(c, &a); } )*
-                    { $$ = mk_str(concat_string_list(reverse(a.contents.list))); $$.key = LISTITEM; }
+                    { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
 
 OrderedListBlock =  a:StartList b:Line { pushelt(b, &a); }
                     ( c:ListBlockLine { pushelt(c, &a); } )*
-                    { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+                    { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 OrderedListContinuationBlock = a:StartList 
                               ( b:BlankLines 
@@ -354,7 +354,7 @@ OrderedListContinuationBlock = a:StartList
                                      pushelt(b, &a);
                                 } )
                               ( Indent c:OrderedListBlock { pushelt(c, &a); } )+
-                              { $$ = mk_str(concat_string_list(reverse(a.contents.list))); }
+                              { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 BlankLines =    < BlankLine* > 
                 { $$ = mk_str(yytext); }
@@ -611,28 +611,28 @@ ReferenceLink = ReferenceLinkDouble | ReferenceLinkSingle
 
 ReferenceLinkDouble =  a:Label < Spnl > b:Label
                        {   link match;
-                           if (find_reference(&match, b.contents.list))
-                               $$ = mk_link(a.contents.list, match.url, match.title);
+                           if (find_reference(&match, b.children))
+                               $$ = mk_link(a.children, match.url, match.title);
                            else {
                                /* $$.key == LIST; (not needed because $$.key set by Label match */
-                               $$.contents.list = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext),
+                               $$.children = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext),
                                            cons(mk_str("["), cons(b, cons(mk_str("]"), NULL)))))));
                            }
                        }
 
 ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                        {   link match;
-                           if (find_reference(&match, a.contents.list)) {
-                               $$ = mk_link(a.contents.list, match.url, match.title);
+                           if (find_reference(&match, a.children)) {
+                               $$ = mk_link(a.children, match.url, match.title);
                            } 
                            else {
                                $$.key = LIST;
-                               $$.contents.list = cons(mk_str("["), cons(a, cons(mk_str("]"),cons(mk_str(yytext),NULL))));
+                               $$.children = cons(mk_str("["), cons(a, cons(mk_str("]"),cons(mk_str(yytext),NULL))));
                            }
                        }
 
 ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')' 
-                { $$ = mk_link(l.contents.list, s.contents.str, t.contents.str); }
+                { $$ = mk_link(l.children, s.contents.str, t.contents.str); }
 
 Source  = ( '<' < SourceContents > '>' | < SourceContents > )
           { $$ = mk_str(yytext); }
@@ -660,7 +660,7 @@ AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
                 } 
 
 Reference = NonindentSpace l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
-            { $$ = mk_link(l.contents.list, s.contents.str, t.contents.str); $$.key = REFERENCE; }
+            { $$ = mk_link(l.children, s.contents.str, t.contents.str); $$.key = REFERENCE; }
 
 Label = '['
         a:StartList 
@@ -685,7 +685,7 @@ RefTitleParens = '(' < ( !(')' Sp Newline | Newline) . )* > ')'
 
 References = a:StartList
              ( b:Reference { pushelt(b, &a); } | SkipBlock )* 
-             { references = a.contents.list; }
+             { references = a.children; }
 
 Ticks1 = "`"
 Ticks2 = "``"
@@ -737,7 +737,7 @@ OptionallyIndentedLine = Indent? Line
 
 # StartList starts a list data structure that can be added to with pushelt:
 StartList = &.
-            { $$.key = LIST; $$.contents.list = NULL; }
+            { $$.key = LIST; $$.children = NULL; }
 
 Line =  ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
         { $$ = mk_str(yytext); }

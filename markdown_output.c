@@ -143,34 +143,34 @@ void print_html_element(element elt, bool obfuscate) {
         break;
     case EMPH:
         printf("<em>");
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         printf("</em>");
         break;
     case STRONG:
         printf("<strong>");
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         printf("</strong>");
         break;
     case LIST:
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
         pad(2);
         printf("<h%1d>", lev);
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         printf("</h%1d>", lev);
         padded = 0;
         break;
     case PLAIN:
         pad(1);
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         padded = 0;
         break;
     case PARA:
         pad(2);
         printf("<p>");
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         printf("</p>");
         padded = 0;
         break;
@@ -195,7 +195,7 @@ void print_html_element(element elt, bool obfuscate) {
         pad(2);
         printf("<ul>");
         padded = 0;
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         pad(1);
         printf("</ul>");
         padded = 0;
@@ -204,7 +204,7 @@ void print_html_element(element elt, bool obfuscate) {
         pad(2);
         printf("<ol>");
         padded = 0;
-        print_html_element_list(elt.contents.list, obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         pad(1);
         printf("</ol>");
         padded = 0;
@@ -324,16 +324,16 @@ void print_latex_element(element elt) {
         break;
     case EMPH:
         printf("\\emph{");
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("}");
         break;
     case STRONG:
         printf("\\textbf{");
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("}");
         break;
     case LIST:
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         break;
     case H1: case H2: case H3:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
@@ -341,19 +341,19 @@ void print_latex_element(element elt) {
         for (i = elt.key; i > H1; i--)
             printf("sub");
         printf("section{");
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("}\n\n");
         break;
     case H4: case H5: case H6:
         printf("\\noindent\\textbf{");
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("}\n");
     case PLAIN:
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("\n");
         break;
     case PARA:
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("\n\n"); 
         break;
     case HRULE:
@@ -370,12 +370,12 @@ void print_latex_element(element elt) {
     case BULLETLIST:
         printf("\\begin{itemize}\n");
         padded = 0;
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("\\end{itemize}\n\n");
         break;
     case ORDEREDLIST:
         printf("\\begin{enumerate}\n");
-        print_latex_element_list(elt.contents.list);
+        print_latex_element_list(elt.children);
         printf("\\end{enumerate}\n\n");
         break;
     case LISTITEM:
@@ -480,38 +480,38 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case EMPH:
         printf("\\fI");
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         printf("\\fR");
         padded = 0;
         break;
     case STRONG:
         printf("\\fB");
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         printf("\\fR");
         padded = 0;
         break;
     case LIST:
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         padded = 0;
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;
         pad(1);
         printf(".H %d \"", lev);
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         printf("\"");
         padded = 0;
         break;
     case PLAIN:
         pad(1);
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         padded = 0;
         break;
     case PARA:
         pad(1);
         if (!in_list_item || count != 1)
             printf(".P\n");
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         padded = 0;
         break;
     case HRULE:
@@ -533,7 +533,7 @@ void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".BL");
         padded = 0;
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         pad(1);
         printf(".LE 1");
         padded = 0;
@@ -542,7 +542,7 @@ void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".AL");
         padded = 0;
-        print_groff_mm_element_list(elt.contents.list);
+        print_groff_mm_element_list(elt.children);
         pad(1);
         printf(".LE 1");
         padded = 0;

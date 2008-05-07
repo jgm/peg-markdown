@@ -20,7 +20,6 @@ typedef struct Link link;
 /* Union for contents of an Element (string, list, or link). */
 union Contents {
     char             *str;
-    struct Element   *list;
     struct Link      link;
 };
 
@@ -51,9 +50,10 @@ enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, 
 
 /* Semantic value of a parsing action. */
 struct Element {
-    int            key;
-    union Contents contents;
-    struct Element *next;
+    int               key;
+    union Contents    contents;
+    struct Element    *children;
+    struct Element    *next;
 };
 
 typedef struct Element element;
