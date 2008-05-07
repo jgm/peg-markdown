@@ -400,6 +400,184 @@ void print_latex_element(element elt) {
     }
 }
 
+/**********************************************************************
+
+  Functions for printing Elements as groff (mm macros)
+
+ ***********************************************************************/
+
+static bool in_list_item = false; /* True if we're parsing contents of a list item. */
+
+/* print_groff_string - print string, escaping for groff */
+void print_groff_string(char *str) {
+    while (*str != '\0') {
+        switch (*str) {
+        case '\\':
+            printf("\\e");
+            break;
+        default:
+            putchar(*str);
+            break;
+        }
+    str++;
+    }
+}
+
+void print_groff_mm_element(element elt, int count);
+
+/* print_groff_mm_element_list - print a list of elements as groff ms */
+void print_groff_mm_element_list(item *list) {
+    int count = 1;
+    while (list != NULL) {
+        print_groff_mm_element((*list).val, count);
+        list = (*list).next;
+        count++;
+    }
+}
+
+/* print_groff_mm_element - print an element as groff ms */
+void print_groff_mm_element(element elt, int count) {
+    int lev;
+    char *contents;
+    switch (elt.key) {
+    case SPACE:
+        printf("%s", elt.contents.str);
+        padded = 0;
+        break;
+    case LINEBREAK:
+        pad(1);
+        printf(".br");
+        padded = 0;
+        break;
+    case STR:
+        print_groff_string(elt.contents.str);
+        padded = 0;
+        break;
+    case CODE:
+        printf("\\fC");
+        print_groff_string(elt.contents.str);
+        printf("\\fR");
+        padded = 0;
+        break;
+    case HTML:
+        /* don't print HTML */
+        break;
+    case LINK:
+        print_groff_mm_element_list(elt.contents.link.label);
+        printf(" (%s)", elt.contents.link.url);
+        padded = 0;
+        break;
+    case IMAGE:
+        printf("[IMAGE: ");
+        print_groff_mm_element_list(elt.contents.link.label);
+        printf("]");
+        padded = 0;
+        /* not supported */
+        break;
+    case EMPH:
+        printf("\\fI");
+        print_groff_mm_element_list(elt.contents.list);
+        printf("\\fR");
+        padded = 0;
+        break;
+    case STRONG:
+        printf("\\fB");
+        print_groff_mm_element_list(elt.contents.list);
+        printf("\\fR");
+        padded = 0;
+        break;
+    case LIST:
+        print_groff_mm_element_list(elt.contents.list);
+        padded = 0;
+        break;
+    case H1: case H2: case H3: case H4: case H5: case H6:
+        lev = elt.key - H1 + 1;
+        pad(1);
+        printf(".H %d \"", lev);
+        print_groff_mm_element_list(elt.contents.list);
+        printf("\"");
+        padded = 0;
+        break;
+    case PLAIN:
+        pad(1);
+        print_groff_mm_element_list(elt.contents.list);
+        padded = 0;
+        break;
+    case PARA:
+        pad(1);
+        if (!in_list_item || count != 1)
+            printf(".P\n");
+        print_groff_mm_element_list(elt.contents.list);
+        padded = 0;
+        break;
+    case HRULE:
+        pad(1);
+        printf("\\l'\\n(.lu*8u/10u'");
+        padded = 0;
+        break;
+    case HTMLBLOCK:
+        /* don't print HTML block */
+        break;
+    case VERBATIM:
+        pad(1);
+        printf(".VERBON 2\n");
+        print_groff_string(elt.contents.str);
+        printf(".VERBOFF");
+        padded = 0;
+        break;
+    case BULLETLIST:
+        pad(1);
+        printf(".BL");
+        padded = 0;
+        print_groff_mm_element_list(elt.contents.list);
+        pad(1);
+        printf(".LE 1");
+        padded = 0;
+        break;
+    case ORDEREDLIST:
+        pad(1);
+        printf(".AL");
+        padded = 0;
+        print_groff_mm_element_list(elt.contents.list);
+        pad(1);
+        printf(".LE 1");
+        padded = 0;
+        break;
+    case LISTITEM:
+        pad(1);
+        printf(".LI\n");
+        in_list_item = true;
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        contents = strtok(elt.contents.str, "\001");
+        padded = 2;
+        print_groff_mm_element(markdown(contents), 1);
+        while ((contents = strtok(NULL, "\001"))) {
+            padded = 2;
+            print_groff_mm_element(markdown(contents), 1);
+        }
+        in_list_item = false;
+        break;
+    case BLOCKQUOTE:
+        pad(1);
+        printf(".DS I\n");
+        padded = 2;
+        print_groff_mm_element(markdown(elt.contents.str), 1);
+        pad(1);
+        printf(".DE");
+        padded = 0;
+        break;
+    case REFERENCE:
+        /* Nonprinting */
+        break;
+    default: 
+        fprintf(stderr, "print_groff_mm_element encountered unknown element key = %d\n", elt.key); 
+        exit(EXIT_FAILURE);
+        break;
+    }
+}
+
 
 /**********************************************************************
 
@@ -439,13 +617,10 @@ void help(char *progname)
   printf("Usage: %s [options] [FILE]...\n"
          "Options:\n"
          "-t FORMAT or --to FORMAT    convert to FORMAT (default is html)\n"
+         "                            FORMAT = html|latex|groff-mm\n"
          "-o FILE or --output FILE    send output to FILE (default is stdout)\n"
          "-V or --version             print program version and exit\n"
-         "-h or --help                show this message and exit\n"
-         "\n"
-         "This program reads the specified FILEs (or stdin if none are given)\n"
-         "and converts them to FORMAT using markdown syntax conventions.\n"
-         "Supported FORMATs:  html latex\n",
+         "-h or --help                show this message and exit\n",
          progname);
 }
 
@@ -464,7 +639,14 @@ int main(int argc, char * argv[]) {
     /* the output filename is initially 0 (a.k.a. stdout) */
     char *outfilename = 0;
     char *format = 0;
-    
+   
+    /* Output formats. */
+    enum formats { HTML_FORMAT,
+                   LATEX_FORMAT,
+                   GROFF_MM_FORMAT
+                 };
+
+ 
     int output_format = HTML_FORMAT;
 
     char *shortopts = "Vho:t:";
@@ -497,6 +679,8 @@ int main(int argc, char * argv[]) {
                 output_format = HTML_FORMAT;
             else if (strcmp(format, "latex") == 0)
                 output_format = LATEX_FORMAT;
+            else if (strcmp(format, "groff-mm") == 0)
+                output_format = GROFF_MM_FORMAT;
             else {
                 fprintf(stderr, "%s: Unknown output format '%s'\n", progname, format);
                 exit(EXIT_FAILURE);
@@ -588,6 +772,9 @@ int main(int argc, char * argv[]) {
         break;
     case LATEX_FORMAT:
         print_latex_element(parsed_input);
+        break;
+    case GROFF_MM_FORMAT:
+        print_groff_mm_element(parsed_input, 1);
         break;
     default:
         fprintf(stderr, "print_element - unknown format = %d\n", output_format); 

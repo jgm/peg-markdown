@@ -48,11 +48,6 @@ enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, 
             REFERENCE
           };
 
-/* Output formats. */
-enum formats { HTML_FORMAT,
-               LATEX_FORMAT
-             };
-
 /* Semantic value of a parsing action. */
 struct Element {
     int            key;
