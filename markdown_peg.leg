@@ -88,6 +88,7 @@ static char *charbuf = "";     /* Buffer of characters to be parsed. */
 static item *references;       /* List of link references found. */
 static int output_format;
 static element parse_result;   /* Results of parse. */
+static int syntax_extensions;  /* Syntax extensions selected. */
 
 /**********************************************************************
 
@@ -534,6 +535,7 @@ Inline  = Str
         | RawHtml
         | Entity
         | EscapedChar
+        | Smart
         | Symbol
 
 Space = Spacechar+ 
@@ -715,7 +717,7 @@ Nonspacechar =  !Spacechar !Newline .
 Newline =       '\n' | '\r' '\n'?
 Sp =            Spacechar*
 Spnl =          Sp (Newline Sp)?
-SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '<' | '!' | '\\'
+SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '<' | '!' | '\\' | ExtendedSpecialChar
 NormalChar =    !( SpecialChar | Spacechar | Newline ) . 
 Alphanumeric =  [A-Za-z0-9]
 
@@ -743,11 +745,22 @@ Line =  ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
 SkipBlock = ( !BlankLine Line )+ BlankLine* 
           | BlankLine+
 
+# Syntax extensions
+
+ExtendedSpecialChar = (&{ (syntax_extensions & EXT_SMART) } '.')
+
+Smart = &{ (syntax_extensions & EXT_SMART) } Ellipses
+
+Ellipses = ("..." | ". . .") { $$.key = ELLIPSIS; }
+
 %%
 
-element markdown(int extensions, char *string) {
+element markdown(char *string, int extensions) {
 
     char *oldcharbuf;
+    
+    syntax_extensions = extensions;
+   
     oldcharbuf = charbuf;
     charbuf = string;
     yyparsefrom(yy_References);    /* first pass, just to collect references */

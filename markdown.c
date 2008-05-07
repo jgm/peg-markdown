@@ -23,7 +23,7 @@
 #include "my_getopt-1.5/getopt.h"
 
 extern char *strdup(const char *string);
-static int extensions = 0;
+static int extensions;
 
 /**********************************************************************
 
@@ -103,6 +103,9 @@ void print_html_element(element elt, bool obfuscate) {
         break;
     case STR:
         print_html_string(elt.contents.str, obfuscate);
+        break;
+    case ELLIPSIS:
+        printf("&hellip;");
         break;
     case CODE:
         printf("<code>");
@@ -216,16 +219,16 @@ void print_html_element(element elt, bool obfuscate) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_html_element(markdown(extensions, contents), obfuscate);
+        print_html_element(markdown(contents, extensions), obfuscate);
         while ((contents = strtok(NULL, "\001")))
-            print_html_element(markdown(extensions, contents), obfuscate);
+            print_html_element(markdown(contents, extensions), obfuscate);
         printf("</li>");
         padded = 0;
         break;
     case BLOCKQUOTE:
         pad(2);
         printf("<blockquote>");
-        print_html_element(markdown(extensions, elt.contents.str), obfuscate);
+        print_html_element(markdown(elt.contents.str, extensions), obfuscate);
         printf("</blockquote>");
         padded = 0;
         break;
@@ -303,6 +306,9 @@ void print_latex_element(element elt) {
         break;
     case STR:
         print_latex_string(elt.contents.str);
+        break;
+    case ELLIPSIS:
+        printf("\\ldots{}");
         break;
     case CODE:
         printf("\\texttt{");
@@ -382,13 +388,13 @@ void print_latex_element(element elt) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_latex_element(markdown(extensions, contents));
+        print_latex_element(markdown(contents, extensions));
         while ((contents = strtok(NULL, "\001")))
-            print_latex_element(markdown(extensions, contents));
+            print_latex_element(markdown(contents, extensions));
         break;
     case BLOCKQUOTE:
         printf("\\begin{quote}");
-        print_latex_element(markdown(extensions, elt.contents.str));
+        print_latex_element(markdown(elt.contents.str, extensions));
         printf("\\end{quote}\n\n");
         break;
     case REFERENCE:
@@ -453,6 +459,9 @@ void print_groff_mm_element(element elt, int count) {
     case STR:
         print_groff_string(elt.contents.str);
         padded = 0;
+        break;
+    case ELLIPSIS:
+        printf("...");
         break;
     case CODE:
         printf("\\fC");
@@ -553,10 +562,10 @@ void print_groff_mm_element(element elt, int count) {
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
         padded = 2;
-        print_groff_mm_element(markdown(extensions, contents), 1);
+        print_groff_mm_element(markdown(contents, extensions), 1);
         while ((contents = strtok(NULL, "\001"))) {
             padded = 2;
-            print_groff_mm_element(markdown(extensions, contents), 1);
+            print_groff_mm_element(markdown(contents, extensions), 1);
         }
         in_list_item = false;
         break;
@@ -564,7 +573,7 @@ void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".DS I\n");
         padded = 2;
-        print_groff_mm_element(markdown(extensions, elt.contents.str), 1);
+        print_groff_mm_element(markdown(elt.contents.str, extensions), 1);
         pad(1);
         printf(".DE");
         padded = 0;
@@ -617,11 +626,13 @@ void help(char *progname)
 {
   printf("Usage: %s [options] [FILE]...\n"
          "Options:\n"
-         "-t FORMAT or --to FORMAT    convert to FORMAT (default is html)\n"
-         "                            FORMAT = html|latex|groff-mm\n"
-         "-o FILE or --output FILE    send output to FILE (default is stdout)\n"
-         "-V or --version             print program version and exit\n"
-         "-h or --help                show this message and exit\n",
+         "-t FORMAT or --to FORMAT        convert to FORMAT (default is html)\n"
+         "                                FORMAT = html|latex|groff-mm\n"
+         "-o FILE or --output FILE        send output to FILE (default is stdout)\n"
+         "-x[EXTS] or --extensions [EXTS] use syntax extensions (all if EXTS not specified)\n"
+         "                                EXTS = smart, ...\n"
+         "-V or --version                 print program version and exit\n"
+         "-h or --help                    show this message and exit\n",
          progname);
 }
 
@@ -640,7 +651,8 @@ int main(int argc, char * argv[]) {
     /* the output filename is initially 0 (a.k.a. stdout) */
     char *outfilename = 0;
     char *format = 0;
-   
+    char *exts = 0;
+
     /* Output formats. */
     enum formats { HTML_FORMAT,
                    LATEX_FORMAT,
@@ -650,7 +662,7 @@ int main(int argc, char * argv[]) {
  
     int output_format = HTML_FORMAT;
 
-    char *shortopts = "Vho:t:";
+    char *shortopts = "Vhx::o:t:";
     /* long options list */
     struct option longopts[] =
     {
@@ -659,11 +671,14 @@ int main(int argc, char * argv[]) {
       { "help",       no_argument,       0,    'h' }, /*       1 */
       { "output",     required_argument, 0,    'o' }, /*       2 */
       { "to",         required_argument, 0,    't' }, /*       3 */
+      { "extensions", optional_argument, 0,    'x' }, /*       3 */
       /* end-of-list marker */
       { 0, 0, 0, 0 }
     };
     /* long option list index */
     int longind = 0;
+    
+    extensions = 0;
 
     /* parse all options from the command line */
     while ((opt = getopt_long_only(argc, argv, shortopts, longopts, &longind)) != -1)
@@ -671,9 +686,26 @@ int main(int argc, char * argv[]) {
         case 'V': /* -version */
             version(progname);
             return 0;
-        case 'h': /* -version */
+        case 'h': /* -help */
             help(progname);
             return 0;
+        case 'x': /* -extended */
+            exts = optarg;
+            if (exts == NULL) {
+                extensions = 0xFFFFFF;  /* turn on all extensions */
+                break;
+            }
+            exts = strtok(optarg, ",");
+            while (exts != NULL) {
+                if (strcmp(exts, "smart") == 0)
+                    extensions = extensions | EXT_SMART;
+                else {
+                    fprintf(stderr, "%s: Unknown extension '%s'\n", progname, exts);
+                    exit(EXIT_FAILURE);
+                }   
+                exts = strtok(NULL, ",");
+            }
+            break;
         case 't': /* -to */
             format = optarg;
             if (strcmp(format, "html") == 0)
@@ -764,8 +796,8 @@ int main(int argc, char * argv[]) {
     }
 
     strcat(inputbuf, strdup("\n\n"));   /* add newlines to end to match Markdown.pl behavior */
-
-    element parsed_input = markdown(extensions, inputbuf);
+   
+    element parsed_input = markdown(inputbuf, extensions);
 
     switch (output_format) {
     case HTML_FORMAT:

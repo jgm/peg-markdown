@@ -28,6 +28,7 @@ union Contents {
 enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, see below. */
             SPACE,
             LINEBREAK,
+            ELLIPSIS,
             STR,
             LINK,
             IMAGE,
@@ -65,9 +66,8 @@ struct ElementListItem {
 typedef struct ElementListItem item;
 
 enum markdown_extensions { 
-    EXT_SMART_QUOTES     = 1,
-    EXT_SMART_DASHES     = 2
+    EXT_SMART            = 1
 };  
 
-element markdown(int extensions, char *string);
+element markdown(char *string, int extensions);
 
