@@ -55,20 +55,38 @@ syntax description, and lets the author of the document choose whether
 Hacking
 =======
 
-It should be pretty easy to modify markdown.leg to produce other formats
+It should be pretty easy to modify the program to produce other formats
 than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
 
-  * To add an output format, add the format to 'formats', modify 'print_element',
-    and add functions corresponding to 'print_html_string', 'print_html_element',
-    and 'print_html_element_list'.  Also add an option in the main loop that selects
-    the new format.
+  * `markdown_peg.h` contains declarations for both `markdown_parser.leg`
+    and `markdown_output.c`.
+
+  * `markdown_parser.leg` contains the grammar itself, the `markdown()`
+    function, and some utility functions used by the parser actions.
+
+  * `markdown_output.c` contains functions for printing the `Element`
+    structure in various output formats.  (This includes calling
+    `markdown()` again when needed to parse list items and blockquotes,
+    which are stored initially as raw strings.)
+
+  * To add an output format, add the format to `formats`, modify
+    `print_element`, and add functions `print_XXXX_string`,
+    `print_XXXX_element`, and `print_XXXX_element_list`. Also add an
+    option in the main program that selects the new format. Don't forget
+    to add it to the help message.
 
   * To add syntax extensions, define them in the PEG grammar (bottom part
-    of markdown.leg), using existing definitions as a guide. If you need
-    to add new types of elements (e.g. FOOTNOTE), modify the 'keys'
-    enum.  By using `&{ }` rules it should be possible to selectively
-    disable extensions depending on command-line options.
+    of `markdown_parser.leg`), using existing definitions as a guide.
+    New inline elements will need to be added to `Inline =`; new block
+    elements will need to be added to `Block =`. If you need to add new
+    types of elements (e.g. `FOOTNOTE`), modify the `keys` enum. By using
+    `&{ }` rules one can selectively disable extensions depending
+    on command-line options. For example, `&{ (syntax_extensions &
+    EXT_SMART) }` succeeds only if the `EXT_SMART` bit of the global
+    syntax_extensions is set.  Add your option to `markdown_extensions`,
+    and modify the option parsing in markdown.c so that your option gets
+    set appropriately.
 
-  * Note:  Avoid using [^abc] character classes in the grammar, because they
-    cause problems with non-ascii input.  Instead, use:  ( !'a' !'b' !'c' . )
+  * Note:  Avoid using `[^abc]` character classes in the grammar, because they
+    cause problems with non-ascii input.  Instead, use:  `( !'a' !'b' !'c' . )`
 
