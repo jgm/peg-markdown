@@ -105,6 +105,12 @@ void print_html_element(element elt, bool obfuscate) {
     case ELLIPSIS:
         printf("&hellip;");
         break;
+    case EMDASH:
+        printf("&mdash;");
+        break;
+    case ENDASH:
+        printf("&ndash;");
+        break;
     case CODE:
         printf("<code>");
         print_html_string(elt.contents.str, obfuscate);
@@ -306,6 +312,12 @@ void print_latex_element(element elt) {
     case ELLIPSIS:
         printf("\\ldots{}");
         break;
+    case EMDASH: 
+        printf("---");
+        break;
+    case ENDASH: 
+        printf("--");
+        break;
     case CODE:
         printf("\\texttt{");
         print_latex_string(elt.contents.str);
@@ -456,6 +468,12 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case ELLIPSIS:
         printf("...");
+        break;
+    case EMDASH:
+        printf("\\[em]");
+        break;
+    case ENDASH:
+        printf("\\[en]");
         break;
     case CODE:
         printf("\\fC");
