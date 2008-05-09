@@ -748,18 +748,41 @@ SkipBlock = ( !BlankLine Line )+ BlankLine*
 
 # Syntax extensions
 
-ExtendedSpecialChar = &{ (syntax_extensions & EXT_SMART) } ('.' | '-')
+ExtendedSpecialChar = &{ (syntax_extensions & EXT_SMART) } ('.' | '-' | '\'' | '"' )
 
 Smart = &{ (syntax_extensions & EXT_SMART) } 
-        ( Ellipsis | Dash )
+        ( Ellipsis | Dash | SingleQuoted | DoubleQuoted )
 
-Ellipsis = ("..." | ". . .") { $$.key = ELLIPSIS; }
+Ellipsis = ("..." | ". . .") 
+           { $$.key = ELLIPSIS; }
 
 Dash = EmDash | EnDash
 
-EnDash = '-' &Digit  { $$.key = ENDASH; }
+EnDash = '-' &Digit  
+         { $$.key = ENDASH; }
 
-EmDash = Sp ("---" | "--") Sp { $$.key = EMDASH; }
+EmDash = Sp ("---" | "--") Sp 
+         { $$.key = EMDASH; }
+
+SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
+
+SingleQuoteEnd = '\'' !Alphanumeric
+
+SingleQuoted = SingleQuoteStart
+               a:StartList 
+               ( !SingleQuoteEnd b:Inline { pushelt(b, &a); } )+
+               SingleQuoteEnd
+               { $$ = mk_list(SINGLEQUOTED, a); } 
+
+DoubleQuoteStart = '"'
+
+DoubleQuoteEnd = '"'
+
+DoubleQuoted =  DoubleQuoteStart
+                a:StartList
+                ( !DoubleQuoteEnd b:Inline { pushelt(b, &a); } )+
+                DoubleQuoteEnd
+                { $$ = mk_list(DOUBLEQUOTED, a); }
 
 %%
 

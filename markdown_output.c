@@ -111,6 +111,16 @@ void print_html_element(element elt, bool obfuscate) {
     case ENDASH:
         printf("&ndash;");
         break;
+    case SINGLEQUOTED:
+        printf("&lsquo;");
+        print_html_element_list(elt.children, obfuscate);
+        printf("&rsquo;");
+        break;
+    case DOUBLEQUOTED:
+        printf("&ldquo;");
+        print_html_element_list(elt.children, obfuscate);
+        printf("&rdquo;");
+        break;
     case CODE:
         printf("<code>");
         print_html_string(elt.contents.str, obfuscate);
@@ -318,6 +328,16 @@ void print_latex_element(element elt) {
     case ENDASH: 
         printf("--");
         break;
+    case SINGLEQUOTED:
+        printf("`");
+        print_latex_element_list(elt.children);
+        printf("'");
+        break;
+    case DOUBLEQUOTED:
+        printf("``");
+        print_latex_element_list(elt.children);
+        printf("''");
+        break;
     case CODE:
         printf("\\texttt{");
         print_latex_string(elt.contents.str);
@@ -474,6 +494,16 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case ENDASH:
         printf("\\[en]");
+        break;
+    case SINGLEQUOTED:
+        printf("`");
+        print_groff_mm_element_list(elt.children);
+        printf("'");
+        break;
+    case DOUBLEQUOTED:
+        printf("\\[lq]");
+        print_groff_mm_element_list(elt.children);
+        printf("\\[rq]");
         break;
     case CODE:
         printf("\\fC");
