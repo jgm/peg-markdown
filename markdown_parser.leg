@@ -213,7 +213,7 @@ static bool find_reference(link *result, element *label) {
 Doc =       a:Blocks BlankLine* Eof 
             { parse_result = a; }
 
-Blocks =    a:StartList ( b:Block { pushelt(b, &a); } )*
+Blocks =    a:StartList ( Block { pushelt($$, &a); } )*
             { $$ = mk_list(LIST, a); }
 
 Block =     BlankLine*
@@ -239,26 +239,22 @@ AtxInline = !Newline !(Sp '#'* Sp Newline) Inline
 AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) > 
             { $$.key = H1 + (strlen(yytext) - 1); }
  
-AtxHeading = s:AtxStart Sp a:StartList ( b:AtxInline { pushelt(b, &a); } )+ (Sp '#'* Sp)?  Newline
+AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { pushelt($$, &a); } )+ (Sp '#'* Sp)?  Newline
             { $$ = mk_list(s.key, a); }
 
 SetextHeading = SetextHeading1 | SetextHeading2
 
-SetextHeadingInline = !Endline Inline
-
-SetextHeading1 =  a:StartList ( b:SetextHeadingInline { pushelt(b, &a); } )+ Newline "===" '='* Newline
+SetextHeading1 =  a:StartList ( !Endline Inline { pushelt($$, &a); } )+ Newline "===" '='* Newline
                   { $$ = mk_list(H1, a); }
 
-SetextHeading2 =  a:StartList ( b:SetextHeadingInline { pushelt(b, &a) ; } )+ Newline "---" '-'* Newline
+SetextHeading2 =  a:StartList ( !Endline Inline { pushelt($$, &a) ; } )+ Newline "---" '-'* Newline
                   { $$ = mk_list(H2, a); }
 
 Heading = AtxHeading | SetextHeading
 
 BlockQuote = BlockQuoteRaw 
 
-BlockQuoteLine = '>' ' '?  Line
-
-BlockQuoteRaw =  a:StartList ( b:BlockQuoteLine { pushelt(b, &a); } )+
+BlockQuoteRaw =  a:StartList ( '>' ' '? Line { pushelt($$, &a); } )+
                  {   char *c = concat_string_list(reverse(a.children));
                      strcat(c, "\n");  /* Note: an extra byte was allocated for this */
                      $$.contents.str = c;
@@ -268,11 +264,11 @@ BlockQuoteRaw =  a:StartList ( b:BlockQuoteLine { pushelt(b, &a); } )+
 NonblankIndentedLine = !BlankLine IndentedLine 
 
 VerbatimChunk = a:StartList 
-                ( c:BlankLine { pushelt(c, &a); } )* 
-                ( b:NonblankIndentedLine { pushelt(b, &a); } )+
+                ( BlankLine { pushelt($$, &a); } )* 
+                ( NonblankIndentedLine { pushelt($$, &a); } )+
                 { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
-Verbatim =     a:StartList ( b:VerbatimChunk { pushelt(b, &a); } )+
+Verbatim =     a:StartList ( VerbatimChunk { pushelt($$, &a); } )+
                { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = VERBATIM; }
 
 HorizontalRule = NonindentSpace 
@@ -286,7 +282,7 @@ Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
 
 BulletList = BulletListTight | BulletListLoose
 
-BulletListTight = a:StartList ( b:BulletListItem { pushelt(b, &a); } )+ BlankLine* !BulletListLoose
+BulletListTight = a:StartList ( BulletListItem { pushelt($$, &a); } )+ BlankLine* !BulletListLoose
                   { $$ = mk_list(BULLETLIST, a); } 
 
 BulletListLoose = a:StartList 
@@ -302,19 +298,19 @@ BulletListLoose = a:StartList
 
 BulletListItem = !HorizontalRule Bullet 
                  a:StartList 
-                 b:BulletListBlock { pushelt(b, &a); } 
-                 ( c:BulletListContinuationBlock { pushelt(c, &a); } )*
+                 BulletListBlock { pushelt($$, &a); } 
+                 ( BulletListContinuationBlock { pushelt($$, &a); } )*
                  { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
 
-BulletListBlock = a:StartList b:Line { pushelt(b, &a); } (c:ListBlockLine { pushelt(c, &a); })*
+BulletListBlock = a:StartList Line { pushelt($$, &a); } (ListBlockLine { pushelt($$, &a); })*
                   { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 BulletListContinuationBlock = a:StartList 
-                              ( b:BlankLines  
-                                {   if (strlen(b.contents.str) == 0)
-                                         b.contents.str = strdup("\001"); /* block separator */
-                                     pushelt(b, &a); } )
-                              ( Indent c:BulletListBlock { pushelt(c, &a); } )+
+                              ( BlankLines  
+                                {   if (strlen($$.contents.str) == 0)
+                                         $$.contents.str = strdup("\001"); /* block separator */
+                                     pushelt($$, &a); } )
+                              ( Indent BulletListBlock { pushelt($$, &a); } )+
                               { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
@@ -322,7 +318,7 @@ Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 OrderedList = OrderedListTight | OrderedListLoose
 
 OrderedListTight = a:StartList
-                   ( b:OrderedListItem { pushelt(b, &a); } )+ 
+                   ( OrderedListItem { pushelt($$, &a); } )+ 
                    BlankLine* !OrderedListLoose
                    { $$ = mk_list(ORDEREDLIST, a); } 
 
@@ -339,21 +335,21 @@ OrderedListLoose = a:StartList
 
 OrderedListItem =   !HorizontalRule Enumerator
                     a:StartList
-                    b:OrderedListBlock { pushelt(b, &a); } 
-                    ( c:OrderedListContinuationBlock { pushelt(c, &a); } )*
+                    OrderedListBlock { pushelt($$, &a); } 
+                    ( OrderedListContinuationBlock { pushelt($$, &a); } )*
                     { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
 
-OrderedListBlock =  a:StartList b:Line { pushelt(b, &a); }
-                    ( c:ListBlockLine { pushelt(c, &a); } )*
+OrderedListBlock =  a:StartList Line { pushelt($$, &a); }
+                    ( ListBlockLine { pushelt($$, &a); } )*
                     { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 OrderedListContinuationBlock = a:StartList 
-                              ( b:BlankLines 
-                                {   if (strlen(b.contents.str) == 0)
-                                         b.contents.str = strdup("\001");  /* block separator */
-                                     pushelt(b, &a);
+                              ( BlankLines 
+                                {   if (strlen($$.contents.str) == 0)
+                                         $$.contents.str = strdup("\001");  /* block separator */
+                                     pushelt($$, &a);
                                 } )
-                              ( Indent c:OrderedListBlock { pushelt(c, &a); } )+
+                              ( Indent OrderedListBlock { pushelt($$, &a); } )+
                               { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 BlankLines =    < BlankLine* > 
@@ -519,7 +515,7 @@ HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fi
                 "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
                 "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
 
-Inlines  =  a:StartList ( !Endline b:Inline { pushelt(b, &a); } 
+Inlines  =  a:StartList ( !Endline Inline { pushelt($$, &a); } 
                         | c:Endline &Inline { pushelt(c, &a); } )+ Endline?
             { $$ = mk_list(LIST, a); }
 
@@ -568,7 +564,7 @@ Emph =      EmphStar | EmphUl
 
 EmphStar =  OneStar !Spacechar !Newline
             a:StartList
-            ( b:EmphInlineStar { pushelt(b, &a); } )+ 
+            ( EmphInlineStar { pushelt($$, &a); } )+ 
             OneStar
             { $$ = mk_list(EMPH, a); }
 
@@ -577,7 +573,7 @@ EmphInlineStar  = StrongStar
 
 EmphUl =    OneUl !Spacechar !Newline
             a:StartList
-            ( b:EmphInlineUl { pushelt(b, &a); } )+ 
+            ( EmphInlineUl { pushelt($$, &a); } )+ 
             OneUl !Alphanumeric
             { $$ = mk_list(EMPH, a); }
 
@@ -588,7 +584,7 @@ Strong = StrongStar | StrongUl
 
 StrongStar =    TwoStar !Spacechar !Newline
                 a:StartList
-                ( b:StrongInlineStar { pushelt(b, &a); } )+ 
+                ( StrongInlineStar { pushelt($$, &a); } )+ 
                 TwoStar
                 { $$ = mk_list(STRONG, a); }
 
@@ -596,7 +592,7 @@ StrongInlineStar =  !(Spnl TwoStar) Inline
 
 StrongUl =  TwoUl !Spacechar !Newline
             a:StartList
-            ( b:StrongInlineUl { pushelt(b, &a); } )+ 
+            ( StrongInlineUl { pushelt($$, &a); } )+ 
             TwoUl
             { $$ = mk_list(STRONG, a); }
 
@@ -664,11 +660,9 @@ Reference = NonindentSpace l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
 
 Label = '['
         a:StartList 
-        ( b:LabelInline { pushelt(b, &a); } )+
+        ( !']' Inline { pushelt($$, &a); } )+
         ']'
         { $$ = mk_list(LIST, a); }
-
-LabelInline = !']' Inline
 
 RefSrc = < Nonspacechar+ > { $$ = mk_str(yytext); $$.key = HTML; }
 
