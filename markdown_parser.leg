@@ -693,11 +693,11 @@ Ticks3 = "```"
 Ticks4 = "````"
 Ticks5 = "`````"
 
-Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) Sp )+ > Sp Ticks1
-       | Ticks2 Sp < ( ( !'`' Nonspacechar )+ | !Ticks2 '`'+ | !( Sp Ticks2 ) Sp )+ > Sp Ticks2
-       | Ticks3 Sp < ( ( !'`' Nonspacechar )+ | !Ticks3 '`'+ | !( Sp Ticks3 ) Sp )+ > Sp Ticks3
-       | Ticks4 Sp < ( ( !'`' Nonspacechar )+ | !Ticks4 '`'+ | !( Sp Ticks4 ) Sp )+ > Sp Ticks4
-       | Ticks5 Sp < ( ( !'`' Nonspacechar )+ | !Ticks5 '`'+ | !( Sp Ticks5 ) Sp )+ > Sp Ticks5
+Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks1
+       | Ticks2 Sp < ( ( !'`' Nonspacechar )+ | !Ticks2 '`'+ | !( Sp Ticks2 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks2
+       | Ticks3 Sp < ( ( !'`' Nonspacechar )+ | !Ticks3 '`'+ | !( Sp Ticks3 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks3
+       | Ticks4 Sp < ( ( !'`' Nonspacechar )+ | !Ticks4 '`'+ | !( Sp Ticks4 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks4
+       | Ticks5 Sp < ( ( !'`' Nonspacechar )+ | !Ticks5 '`'+ | !( Sp Ticks5 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks5
        ) 
        { $$ = mk_str(yytext); $$.key = CODE; }
 
