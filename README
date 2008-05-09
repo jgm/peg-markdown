@@ -83,8 +83,8 @@ than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
     `&{ }` rules one can selectively disable extensions depending
     on command-line options. For example, `&{ (syntax_extensions &
     EXT_SMART) }` succeeds only if the `EXT_SMART` bit of the global
-    syntax_extensions is set.  Add your option to `markdown_extensions`,
-    and modify the option parsing in markdown.c so that your option gets
+    `syntax_extensions` is set.  Add your option to `markdown_extensions`,
+    and modify the option parsing in `markdown.c` so that your option gets
     set appropriately.
 
   * Note:  Avoid using `[^abc]` character classes in the grammar, because they
