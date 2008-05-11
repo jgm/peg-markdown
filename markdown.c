@@ -66,7 +66,7 @@ void help(char *progname)
          "                                FORMAT = html|latex|groff-mm\n"
          "-o FILE or --output FILE        send output to FILE (default is stdout)\n"
          "-x[EXTS] or --extensions [EXTS] use syntax extensions (all if EXTS not specified)\n"
-         "                                EXTS = smart, ...\n"
+         "                                EXTS = smart, notes, ...\n"
          "-V or --version                 print program version and exit\n"
          "-h or --help                    show this message and exit\n",
          progname);
@@ -128,6 +128,8 @@ int main(int argc, char * argv[]) {
             while (exts != NULL) {
                 if (strcmp(exts, "smart") == 0)
                     extensions = extensions | EXT_SMART;
+                else if (strcmp(exts, "notes") == 0)
+                    extensions = extensions | EXT_NOTES;
                 else {
                     fprintf(stderr, "%s: Unknown extension '%s'\n", progname, exts);
                     exit(EXIT_FAILURE);

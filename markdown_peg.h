@@ -25,6 +25,7 @@ union Contents {
 
 /* Types of semantic values returned by parsers. */ 
 enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, see below. */
+            RAW,    /* Raw markdown to be processed further */
             SPACE,
             LINEBREAK,
             ELLIPSIS,
@@ -49,7 +50,8 @@ enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, 
             VERBATIM,
             HTMLBLOCK,
             HRULE,
-            REFERENCE
+            REFERENCE,
+            NOTE,
           };
 
 /* Semantic value of a parsing action. */
@@ -63,9 +65,12 @@ struct Element {
 typedef struct Element element;
 
 enum markdown_extensions { 
-    EXT_SMART            = 1
+    EXT_SMART            = 1,
+    EXT_NOTES            = 2
 };  
 
+element *cons(element new, element *list);
+element *reverse(element *list);
 element markdown(char *string, int extensions);
 
 /* Output formats. */

@@ -35,6 +35,9 @@ static int padded = 2;      /* Number of newlines after last output.
                                Starts at 2 so no newlines are needed at start.
                                */
 
+static element *endnotes;   /* List of endnotes to print after main content. */
+static int notenumber = 0;  /* Number of footnote. */
+
 /* pad - add newlines if needed */
 static void pad(int num) {
     while (num-- > padded)
@@ -170,6 +173,15 @@ void print_html_element(element elt, bool obfuscate) {
     case LIST:
         print_html_element_list(elt.children, obfuscate);
         break;
+    case RAW:
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        contents = strtok(elt.contents.str, "\001");
+        print_html_element(markdown(contents, extensions), obfuscate);
+        while ((contents = strtok(NULL, "\001")))
+            print_html_element(markdown(contents, extensions), obfuscate);
+        break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
         pad(2);
@@ -229,31 +241,59 @@ void print_html_element(element elt, bool obfuscate) {
         pad(1);
         printf("<li>");
         padded = true;
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
-        print_html_element(markdown(contents, extensions), obfuscate);
-        while ((contents = strtok(NULL, "\001")))
-            print_html_element(markdown(contents, extensions), obfuscate);
+        print_html_element_list(elt.children, obfuscate);
         printf("</li>");
         padded = 0;
         break;
     case BLOCKQUOTE:
         pad(2);
-        printf("<blockquote>");
-        print_html_element(markdown(elt.contents.str, extensions), obfuscate);
+        printf("<blockquote>\n");
+        padded = 2;
+        print_html_element_list(elt.children, obfuscate);
+        pad(1);
         printf("</blockquote>");
         padded = 0;
         break;
     case REFERENCE:
         /* Nonprinting */
         break;
+    case NOTE:
+        /* if contents.str == 0, then print note; else ignore, since this
+         * is a note block that has been incorporated into the notes list */
+        if (elt.contents.str == 0) {
+            endnotes = cons(elt, endnotes);
+            ++notenumber;
+            printf("<a class=\"noteref\" id=\"fnref%d\" href=\"#fn%d\" title=\"Jump to note %d\">[%d]</a>", 
+                notenumber, notenumber, notenumber, notenumber);
+        }
+        break;
     default: 
         fprintf(stderr, "print_html_element encountered unknown element key = %d\n", elt.key); 
         exit(EXIT_FAILURE);
         break;
     }
+}
+
+void print_html_endnotes(element *endnotes) {
+    int counter = 0;
+    if (endnotes == NULL) {
+        return;
+    }
+    printf("<hr/>\n<ol id=\"notes\">");
+    endnotes = reverse(endnotes);
+    while (endnotes != NULL) {
+        counter++;
+        pad(1);
+        printf("<li id=\"fn%d\">\n", counter);
+        padded = 2;
+        print_html_element_list((*endnotes).children, false);
+        printf(" <a href=\"#fnref%d\" title=\"Jump back to reference\">[back]</a>", counter);
+        pad(1);
+        printf("</li>");
+        endnotes = (*endnotes).next;
+    }
+    pad(1);
+    printf("</ol>\n");
 }
 
 /**********************************************************************
@@ -367,50 +407,75 @@ void print_latex_element(element elt) {
     case LIST:
         print_latex_element_list(elt.children);
         break;
+    case RAW:
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        contents = strtok(elt.contents.str, "\001");
+        print_latex_element(markdown(contents, extensions));
+        while ((contents = strtok(NULL, "\001")))
+            print_latex_element(markdown(contents, extensions));
+        break;
     case H1: case H2: case H3:
+        pad(2);
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
         printf("\\");
         for (i = elt.key; i > H1; i--)
             printf("sub");
         printf("section{");
         print_latex_element_list(elt.children);
-        printf("}\n\n");
+        printf("}");
+        padded = 0;
         break;
     case H4: case H5: case H6:
+        pad(2);
         printf("\\noindent\\textbf{");
         print_latex_element_list(elt.children);
-        printf("}\n");
+        printf("}");
+        padded = 0;
     case PLAIN:
+        pad(1);
         print_latex_element_list(elt.children);
-        printf("\n");
+        padded = 0;
         break;
     case PARA:
+        pad(2);
         print_latex_element_list(elt.children);
-        printf("\n\n"); 
+        padded = 0;
         break;
     case HRULE:
+        pad(2);
         printf("\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");
+        padded = 0;
         break;
     case HTMLBLOCK:
         /* don't print HTML block */
         break;
     case VERBATIM:
+        pad(1);
         printf("\\begin{verbatim}\n");
         print_latex_string(elt.contents.str);
-        printf("\n\\end{verbatim}\n");
+        printf("\n\\end{verbatim}");
+        padded = 0;
         break;
     case BULLETLIST:
-        printf("\\begin{itemize}\n");
+        pad(1);
+        printf("\\begin{itemize}");
         padded = 0;
         print_latex_element_list(elt.children);
-        printf("\\end{itemize}\n\n");
+        printf("\\end{itemize}");
+        padded = 0;
         break;
     case ORDEREDLIST:
-        printf("\\begin{enumerate}\n");
+        pad(1);
+        printf("\\begin{enumerate}");
+        padded = 0;
         print_latex_element_list(elt.children);
-        printf("\\end{enumerate}\n\n");
+        printf("\\end{enumerate}");
+        padded = 0;
         break;
     case LISTITEM:
+        pad(1);
         printf("\\item ");
         /* \001 is used to indicate boundaries between nested lists when there
          * is no blank line.  We split the string by \001 and parse
@@ -421,9 +486,23 @@ void print_latex_element(element elt) {
             print_latex_element(markdown(contents, extensions));
         break;
     case BLOCKQUOTE:
+        pad(1);
         printf("\\begin{quote}");
+        padded = 0;
         print_latex_element(markdown(elt.contents.str, extensions));
-        printf("\\end{quote}\n\n");
+        printf("\\end{quote}");
+        padded = 0;
+        break;
+    case NOTE:
+        /* if contents.str == 0, then print note; else ignore, since this
+         * is a note block that has been incorporated into the notes list */
+        if (elt.contents.str == 0) {
+            printf("\\footnote{");
+            padded = 2;
+            print_latex_element_list(elt.children);
+            printf("}");
+            padded = 0; 
+        }
         break;
     case REFERENCE:
         /* Nonprinting */
@@ -542,6 +621,15 @@ void print_groff_mm_element(element elt, int count) {
         print_groff_mm_element_list(elt.children);
         padded = 0;
         break;
+    case RAW:
+        /* \001 is used to indicate boundaries between nested lists when there
+         * is no blank line.  We split the string by \001 and parse
+         * each chunk separately. */
+        contents = strtok(elt.contents.str, "\001");
+        print_groff_mm_element(markdown(contents, extensions), count);
+        while ((contents = strtok(NULL, "\001")))
+            print_groff_mm_element(markdown(contents, extensions), count);
+        break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;
         pad(1);
@@ -620,6 +708,19 @@ void print_groff_mm_element(element elt, int count) {
         printf(".DE");
         padded = 0;
         break;
+    case NOTE:
+        /* if contents.str == 0, then print note; else ignore, since this
+         * is a note block that has been incorporated into the notes list */
+        if (elt.contents.str == 0) {
+            printf("\\*F\n");
+            printf(".FS\n");
+            padded = 2;
+            print_groff_mm_element_list(elt.children);
+            pad(1);
+            printf(".FE\n");
+            padded = 1; 
+        }
+        break;
     case REFERENCE:
         /* Nonprinting */
         break;
@@ -640,6 +741,8 @@ void print_element(element elt, int format) {
     switch (format) {
     case HTML_FORMAT:
         print_html_element(elt, false);
+        pad(2);
+        print_html_endnotes(endnotes);
         break;
     case LATEX_FORMAT:
         print_latex_element(elt);

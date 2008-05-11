@@ -29,7 +29,7 @@ int yyparse(void);
  ***********************************************************************/
 
 /* cons - cons an element onto a list, returning pointer to new head */
-static element *cons(element new, element *list) {
+element *cons(element new, element *list) {
     element *head = malloc(sizeof(element));
     assert(head != NULL);
     *head = new;
@@ -44,7 +44,7 @@ static void pushelt(element new, element *lst) {
 }
 
 /* reverse - reverse a list, returning pointer to new list */
-static element *reverse(element *list) {
+element *reverse(element *list) {
     element *new = NULL;
     while (list != NULL) {
         new = cons(*list, new);
@@ -85,7 +85,8 @@ static char *concat_string_list(element *list) {
  ***********************************************************************/
 
 static char *charbuf = "";     /* Buffer of characters to be parsed. */
-static element *references;       /* List of link references found. */
+static element *references;    /* List of link references found. */
+static element *notes;         /* List of footnotes found. */
 static int output_format;
 static element parse_result;   /* Results of parse. */
 static int syntax_extensions;  /* Syntax extensions selected. */
@@ -98,11 +99,20 @@ static int syntax_extensions;  /* Syntax extensions selected. */
 
  ***********************************************************************/
 
+/* mk_element - generic constructor for element */
+static element mk_element(int key) {
+    element result;
+    result.key = key;
+    result.children = NULL;
+    result.next = NULL;
+    return result;
+}
+
 /* mk_str - constructor for STR element */
 static element mk_str(char *string) {
     element result;
     assert(string != NULL);
-    result.key = STR;
+    result = mk_element(STR);
     result.contents.str = strdup(string);
     return result;
 }
@@ -112,7 +122,7 @@ static element mk_str(char *string) {
  * The reversing is necessary because pushelt adds to the head of a list. */
 static element mk_list(int key, element lst) {
     element result;
-    result.key = key;
+    result = mk_element(key);
     result.children = reverse(lst.children);
     return result;
 }
@@ -120,11 +130,16 @@ static element mk_list(int key, element lst) {
 /* mk_link - constructor for LINK element */
 static element mk_link(element *label, char *url, char *title) {
     element result;
-    result.key = LINK;
+    result = mk_element(LINK);
     result.contents.link.label = label;
     result.contents.link.url = strdup(url);
     result.contents.link.title = strdup(title);
     return result;
+}
+
+/* extension = returns true if extension is selected */
+static bool extension(int ext) {
+    return (syntax_extensions & ext);
 }
 
 /* match_inlines - returns true if inline lists match (case-insensitive...) */
@@ -181,6 +196,22 @@ static bool find_reference(link *result, element *label) {
     return false;
 }
 
+/* find_note - return true if note found in notes matching label.
+if found, 'result' is set to point to matched note. */
+
+static bool find_note(element **result, char *label) {
+   element *cur = notes;  /* pointer to walk up list of notes */
+   while (cur != NULL) {
+       if (strcmp(label, (*cur).contents.str) == 0) {
+           *result = cur;
+           return true;
+       } 
+       else 
+           cur = (*cur).next;
+   }
+   return false;
+}
+
 /**********************************************************************
 
   Definitions for leg parser generator.
@@ -218,7 +249,8 @@ Blocks =    a:StartList ( Block { pushelt($$, &a); } )*
 
 Block =     BlankLine*
             ( BlockQuote 
-            | Verbatim 
+            | Verbatim
+            | Note
             | Reference 
             | Heading 
             | OrderedList 
@@ -252,13 +284,19 @@ SetextHeading2 =  a:StartList ( !Endline Inline { pushelt($$, &a) ; } )+ Newline
 
 Heading = AtxHeading | SetextHeading
 
-BlockQuote = BlockQuoteRaw 
+BlockQuote = a:BlockQuoteRaw
+             {  element *raw;
+                raw = malloc(sizeof(element));
+                *raw = a;
+                $$ = mk_element(BLOCKQUOTE);
+                $$.children = raw;
+             }  
 
 BlockQuoteRaw =  a:StartList ( '>' ' '? Line { pushelt($$, &a); } )+
                  {   char *c = concat_string_list(reverse(a.children));
                      strcat(c, "\n");  /* Note: an extra byte was allocated for this */
-                     $$.contents.str = c;
-                     $$.key = BLOCKQUOTE; 
+                     $$ = mk_str(c);
+                     $$.key = RAW;
                  }
 
 NonblankIndentedLine = !BlankLine IndentedLine 
@@ -282,75 +320,68 @@ Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
 
 BulletList = BulletListTight | BulletListLoose
 
-BulletListTight = a:StartList ( BulletListItem { pushelt($$, &a); } )+ BlankLine* !BulletListLoose
+BulletListTight = a:StartList 
+                  ( BulletListItem { pushelt($$, &a); } )+ 
+                  BlankLine* !BulletListLoose
                   { $$ = mk_list(BULLETLIST, a); } 
 
 BulletListLoose = a:StartList 
                   ( b:BulletListItem BlankLine* 
-                    {   char *bplus = malloc(strlen(b.contents.str) + 3);
-                        strcpy(bplus, b.contents.str);
-                        strcat(bplus, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        b = mk_str(bplus);
-                        b.key = LISTITEM;
+                    {   element *li;
+                        li = b.children;
+                        (*li).contents.str = realloc((*li).contents.str, strlen((*li).contents.str) + 3);
+                        strcat((*li).contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
                         pushelt(b, &a); 
                     } )+  
                   { $$ = mk_list(BULLETLIST, a); }
 
-BulletListItem = !HorizontalRule Bullet 
+BulletListItem = !HorizontalRule &Bullet ListItem
+
+ListItem =       ( Bullet | Enumerator )
                  a:StartList 
-                 BulletListBlock { pushelt($$, &a); } 
-                 ( BulletListContinuationBlock { pushelt($$, &a); } )*
-                 { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
+                 ListBlock { pushelt($$, &a); } 
+                 ( ListContinuationBlock { pushelt($$, &a); } )*
+                 {  element *raw;
+                    raw = malloc(sizeof(element));
+                    *raw = mk_str(concat_string_list(reverse(a.children)));
+                    (*raw).key = RAW;
+                    $$ = mk_element(LISTITEM);
+                    $$.children = raw;
+                 }
 
-BulletListBlock = a:StartList Line { pushelt($$, &a); } (ListBlockLine { pushelt($$, &a); })*
-                  { $$ = mk_str(concat_string_list(reverse(a.children))); }
+ListBlock = a:StartList 
+            Line { pushelt($$, &a); }
+            ( ListBlockLine { pushelt($$, &a); } )*
+            { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
-BulletListContinuationBlock = a:StartList 
-                              ( BlankLines  
-                                {   if (strlen($$.contents.str) == 0)
-                                         $$.contents.str = strdup("\001"); /* block separator */
-                                     pushelt($$, &a); } )
-                              ( Indent BulletListBlock { pushelt($$, &a); } )+
-                              { $$ = mk_str(concat_string_list(reverse(a.children))); }
+ListContinuationBlock = a:StartList 
+                        ( BlankLines  
+                          {   if (strlen($$.contents.str) == 0)
+                                   $$.contents.str = strdup("\001"); /* block separator */
+                               pushelt($$, &a); } )
+                        ( Indent ListBlock { pushelt($$, &a); } )+
+                        { $$ = mk_str(concat_string_list(reverse(a.children))); }
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
 OrderedList = OrderedListTight | OrderedListLoose
 
-OrderedListTight = a:StartList
-                   ( OrderedListItem { pushelt($$, &a); } )+ 
-                   BlankLine* !OrderedListLoose
-                   { $$ = mk_list(ORDEREDLIST, a); } 
+OrderedListTight = a:StartList 
+                  ( OrderedListItem { pushelt($$, &a); } )+ 
+                  BlankLine* !OrderedListLoose
+                  { $$ = mk_list(ORDEREDLIST, a); } 
 
 OrderedListLoose = a:StartList 
-                   ( b:OrderedListItem BlankLine* 
-                     {  char *bplus = malloc(strlen(b.contents.str) + 3);
-                        strcpy(bplus, b.contents.str);
-                        strcat(bplus, "\n\n"); /* in loose list, add \n\n to end of each block */
-                        b = mk_str(bplus);
-                        b.key = LISTITEM;
+                  ( b:OrderedListItem BlankLine* 
+                    {   element *li;
+                        li = b.children;
+                        (*li).contents.str = realloc((*li).contents.str, strlen((*li).contents.str) + 3);
+                        strcat((*li).contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
                         pushelt(b, &a); 
-                     } )+
-                   { $$ = mk_list(ORDEREDLIST, a); }
+                    } )+  
+                  { $$ = mk_list(ORDEREDLIST, a); }
 
-OrderedListItem =   !HorizontalRule Enumerator
-                    a:StartList
-                    OrderedListBlock { pushelt($$, &a); } 
-                    ( OrderedListContinuationBlock { pushelt($$, &a); } )*
-                    { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = LISTITEM; }
-
-OrderedListBlock =  a:StartList Line { pushelt($$, &a); }
-                    ( ListBlockLine { pushelt($$, &a); } )*
-                    { $$ = mk_str(concat_string_list(reverse(a.children))); }
-
-OrderedListContinuationBlock = a:StartList 
-                              ( BlankLines 
-                                {   if (strlen($$.contents.str) == 0)
-                                         $$.contents.str = strdup("\001");  /* block separator */
-                                     pushelt($$, &a);
-                                } )
-                              ( Indent OrderedListBlock { pushelt($$, &a); } )+
-                              { $$ = mk_str(concat_string_list(reverse(a.children))); }
+OrderedListItem =   !HorizontalRule &Enumerator ListItem
 
 BlankLines =    < BlankLine* > 
                 { $$ = mk_str(yytext); }
@@ -527,6 +558,8 @@ Inline  = Str
         | Emph
         | Image
         | Link
+        | NoteReference
+        | InlineNote
         | Code
         | RawHtml
         | Entity
@@ -658,7 +691,7 @@ AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
 Reference = NonindentSpace l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
             { $$ = mk_link(l.children, s.contents.str, t.contents.str); $$.key = REFERENCE; }
 
-Label = '['
+Label = '[' ( !'^' &{ extension(EXT_NOTES) } | &. &{ !extension(EXT_NOTES) } )
         a:StartList 
         ( !']' Inline { pushelt($$, &a); } )+
         ']'
@@ -742,9 +775,10 @@ SkipBlock = ( !BlankLine Line )+ BlankLine*
 
 # Syntax extensions
 
-ExtendedSpecialChar = &{ (syntax_extensions & EXT_SMART) } ('.' | '-' | '\'' | '"' )
+ExtendedSpecialChar = &{ extension(EXT_SMART) } ('.' | '-' | '\'' | '"') 
+                    | &{ extension(EXT_NOTES) } ( '^' )
 
-Smart = &{ (syntax_extensions & EXT_SMART) } 
+Smart = &{ extension(EXT_SMART) } 
         ( Ellipsis | Dash | SingleQuoted | DoubleQuoted )
 
 Ellipsis = ("..." | ". . .") 
@@ -778,6 +812,56 @@ DoubleQuoted =  DoubleQuoteStart
                 DoubleQuoteEnd
                 { $$ = mk_list(DOUBLEQUOTED, a); }
 
+NoteReference = &{ extension(EXT_NOTES) }
+                ref:RawNoteReference
+                {   element *match;
+                    if (find_note(&match, ref.contents.str)) {
+                        $$ = mk_element(NOTE);
+                        assert((*match).children != NULL);
+                        $$.children = (*match).children;
+                        $$.contents.str = 0;
+                    } else {
+                        char *s;
+                        s = malloc(strlen(ref.contents.str) + 4);
+                        strcpy(s, "[^");
+                        strcat(s, ref.contents.str);
+                        strcat(s, "]"); 
+                        $$ = mk_str(s);
+                    } 
+                }
+
+RawNoteReference = "[^" < ( !Newline !']' . )+ > ']'
+                   { $$ = mk_str(yytext); }
+
+Note =          &{ extension(EXT_NOTES) }
+                NonindentSpace ref:RawNoteReference ':' Sp
+                a:StartList
+                ( RawNoteBlock { pushelt($$, &a); } )
+                ( Indent RawNoteBlock { pushelt($$, &a); } )*
+                {   $$ = mk_list(NOTE, a); 
+                    $$.contents.str = strdup(ref.contents.str); 
+                }
+
+InlineNote =    &{ extension(EXT_NOTES) }
+                "^["
+                a:StartList
+                ( !']' Inline { pushelt($$, &a); } )+
+                ']'
+                { $$ = mk_list(NOTE, a); $$.contents.str = 0; }
+
+Notes =         a:StartList
+                ( b:Note { pushelt(b, &a); } | SkipBlock )* 
+                { notes = a.children; }
+
+RawNoteBlock =  a:StartList
+                ( !BlankLine OptionallyIndentedLine { pushelt($$, &a); } )+
+                ( BlankLine { pushelt($$, &a); } )* 
+                {   char *c = concat_string_list(reverse(a.children));
+                    strcat(c, "\n");  /* Note: an extra byte was allocated for this */
+                    $$ = mk_str(c);
+                    $$.key = RAW;
+                }
+
 %%
 
 element markdown(char *string, int extensions) {
@@ -790,7 +874,12 @@ element markdown(char *string, int extensions) {
     charbuf = string;
     yyparsefrom(yy_References);    /* first pass, just to collect references */
 
-    charbuf = string;              /* go back to beginning, to convert */
+    if (extension(EXT_NOTES)) {
+        charbuf = string;
+        yyparsefrom(yy_Notes);     /* second pass for notes */
+    }
+
+    charbuf = string;              /* third pass, for real this time */
     yyparsefrom(yy_Doc);
 
     charbuf = oldcharbuf;          /* restore charbuf to original value */
