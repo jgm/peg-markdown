@@ -840,7 +840,7 @@ Note =          &{ extension(EXT_NOTES) }
                 NonindentSpace ref:RawNoteReference ':' Sp
                 a:StartList
                 ( RawNoteBlock { pushelt($$, &a); } )
-                ( Indent RawNoteBlock { pushelt($$, &a); } )*
+                ( &Indent RawNoteBlock { pushelt($$, &a); } )*
                 {   $$ = mk_list(NOTE, a); 
                     $$.contents.str = strdup(ref.contents.str); 
                 }
