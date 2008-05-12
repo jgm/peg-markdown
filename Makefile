@@ -9,13 +9,13 @@ LEG=$(PEGDIR)/leg
 $(LEG):
 	make -C $(PEGDIR)
 
-%.o : %.c
+%.o : %.c markdown_peg.h
 	$(CC) -c -o $@ $<
 
 markdown : markdown.c $(OBJS)
 	$(CC) -Wall -O3 -ansi -o $@ $(OBJS) $<
 
-markdown_parser.c : markdown_parser.leg $(LEG)
+markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h
 	$(LEG) -o $@ $<
 
 .PHONY: clean test
