@@ -779,18 +779,21 @@ ExtendedSpecialChar = &{ extension(EXT_SMART) } ('.' | '-' | '\'' | '"')
                     | &{ extension(EXT_NOTES) } ( '^' )
 
 Smart = &{ extension(EXT_SMART) } 
-        ( Ellipsis | Dash | SingleQuoted | DoubleQuoted )
+        ( Ellipsis | Dash | SingleQuoted | DoubleQuoted | Apostrophe )
+
+Apostrophe = '\''
+             { $$ = mk_element(APOSTROPHE); }
 
 Ellipsis = ("..." | ". . .") 
-           { $$.key = ELLIPSIS; }
+           { $$ = mk_element(ELLIPSIS); }
 
 Dash = EmDash | EnDash
 
 EnDash = '-' &Digit  
-         { $$.key = ENDASH; }
+         { $$ = mk_element(ENDASH); }
 
 EmDash = Sp ("---" | "--") Sp 
-         { $$.key = EMDASH; }
+         { $$ = mk_element(EMDASH); }
 
 SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
 
