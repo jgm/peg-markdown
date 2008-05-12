@@ -52,6 +52,19 @@ following blank line. This is consistent with the official markdown
 syntax description, and lets the author of the document choose whether
 `<p>` tags are desired.
 
+Extensions
+==========
+
+peg-markdown supports extensions to standard markdown syntax.
+These can be turned on using the command line flag `-x`.  `-x`
+by itself turns on all extensions; to turn on extensions selectively,
+specify their names after `-x`, for example: `-xsmart`.
+
+The `smart` extension provides "smart quotes", dashes, and ellipses.
+
+The `notes` extension provides a footnote syntax like that of
+Pandoc or PHP Markdown Extra.
+
 Hacking
 =======
 
@@ -76,13 +89,13 @@ than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
     to add it to the help message.
 
   * To add syntax extensions, define them in the PEG grammar (bottom part
-    of `markdown_parser.leg`), using existing definitions as a guide.
+    of `markdown_parser.leg`), using existing extensions as a guide.
     New inline elements will need to be added to `Inline =`; new block
     elements will need to be added to `Block =`. If you need to add new
     types of elements (e.g. `FOOTNOTE`), modify the `keys` enum. By using
     `&{ }` rules one can selectively disable extensions depending
-    on command-line options. For example, `&{ (syntax_extensions &
-    EXT_SMART) }` succeeds only if the `EXT_SMART` bit of the global
+    on command-line options. For example, `&{ extension(EXT_SMART) }`
+    succeeds only if the `EXT_SMART` bit of the global
     `syntax_extensions` is set.  Add your option to `markdown_extensions`,
     and modify the option parsing in `markdown.c` so that your option gets
     set appropriately.
