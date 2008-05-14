@@ -33,14 +33,14 @@ element *cons(element new, element *list) {
     element *head = malloc(sizeof(element));
     assert(head != NULL);
     *head = new;
-    (*head).next = list;
+    head->next = list;
     return head;
 }
 
 /* pushelt - push an element onto the (list) contents of an element */
 static void pushelt(element new, element *lst) {
-    assert((*lst).key == LIST);
-    (*lst).children = cons(new, (*lst).children);
+    assert(lst->key == LIST);
+    lst->children = cons(new, lst->children);
 }
 
 /* reverse - reverse a list, returning pointer to new list */
@@ -48,7 +48,7 @@ element *reverse(element *list) {
     element *new = NULL;
     while (list != NULL) {
         new = cons(*list, new);
-        list = (*list).next;
+        list = list->next;
     }
     return new;
 }
@@ -57,10 +57,10 @@ element *reverse(element *list) {
 static int length_of_strings(element *list) {
     int len = 0;
     while (list != NULL) {
-        assert((*list).key == STR);
-        assert((*list).contents.str != NULL);
-        len += strlen((*list).contents.str);
-        list = (*list).next;
+        assert(list->key == STR);
+        assert(list->contents.str != NULL);
+        len += strlen(list->contents.str);
+        list = list->next;
     }
     return len;
 }
@@ -70,10 +70,10 @@ static char *concat_string_list(element *list) {
     char *result = malloc(length_of_strings(list) + 2); /* leave room for optional \n and \0  */
     *result = '\0';
     while (list != NULL) {
-        assert((*list).key == STR);
-        assert((*list).contents.str != NULL);
-        result = strcat(result, (*list).contents.str);
-        list = (*list).next;
+        assert(list->key == STR);
+        assert(list->contents.str != NULL);
+        result = strcat(result, list->contents.str);
+        list = list->next;
     }
     return result;
 }
@@ -145,23 +145,23 @@ static bool extension(int ext) {
 /* match_inlines - returns true if inline lists match (case-insensitive...) */
 static bool match_inlines(element *l1, element *l2) {
     while (l1 != NULL && l2 != NULL) {
-        if ((*l1).key != (*l2).key)
+        if (l1->key != l2->key)
             return false;
-        switch ((*l1).key) {
+        switch (l1->key) {
         case SPACE:
         case LINEBREAK:
             break;
         case CODE:
         case STR:
         case HTML:
-            if (strcasecmp((*l1).contents.str, (*l2).contents.str) == 0)
+            if (strcasecmp(l1->contents.str, l2->contents.str) == 0)
                 break;
             else
                 return false;
         case EMPH:
         case STRONG:
         case LIST:
-            if (match_inlines((*l1).children, (*l2).children))
+            if (match_inlines(l1->children, l2->children))
                 break;
             else
                 return false;
@@ -169,12 +169,12 @@ static bool match_inlines(element *l1, element *l2) {
         case IMAGE:
             return false;  /* No links or images within links */
         default:
-            fprintf(stderr, "match_inlines encountered unknown key = %d\n", (*l1).key); 
+            fprintf(stderr, "match_inlines encountered unknown key = %d\n", l1->key); 
             exit(EXIT_FAILURE);
             break;
         }
-        l1 = (*l1).next;
-        l2 = (*l2).next;
+        l1 = l1->next;
+        l2 = l2->next;
     }
     return (l1 == NULL && l2 == NULL);  /* return true if both lists exhausted */
 }
@@ -185,13 +185,13 @@ static bool find_reference(link *result, element *label) {
     element *cur = references;  /* pointer to walk up list of references */
     link curitem;
     while (cur != NULL) {
-        curitem = (*cur).contents.link;
+        curitem = cur->contents.link;
         if (match_inlines(label, curitem.label)) {
-            (*result) = curitem;
+            *result = curitem;
             return true;
         } 
         else 
-            cur = (*cur).next;
+            cur = cur->next;
     }
     return false;
 }
@@ -202,12 +202,12 @@ if found, 'result' is set to point to matched note. */
 static bool find_note(element **result, char *label) {
    element *cur = notes;  /* pointer to walk up list of notes */
    while (cur != NULL) {
-       if (strcmp(label, (*cur).contents.str) == 0) {
+       if (strcmp(label, cur->contents.str) == 0) {
            *result = cur;
            return true;
        } 
        else 
-           cur = (*cur).next;
+           cur = cur->next;
    }
    return false;
 }
@@ -329,8 +329,8 @@ BulletListLoose = a:StartList
                   ( b:BulletListItem BlankLine* 
                     {   element *li;
                         li = b.children;
-                        (*li).contents.str = realloc((*li).contents.str, strlen((*li).contents.str) + 3);
-                        strcat((*li).contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
+                        li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
+                        strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
                         pushelt(b, &a); 
                     } )+  
                   { $$ = mk_list(BULLETLIST, a); }
@@ -344,7 +344,7 @@ ListItem =       ( Bullet | Enumerator )
                  {  element *raw;
                     raw = malloc(sizeof(element));
                     *raw = mk_str(concat_string_list(reverse(a.children)));
-                    (*raw).key = RAW;
+                    raw->key = RAW;
                     $$ = mk_element(LISTITEM);
                     $$.children = raw;
                  }
@@ -375,8 +375,8 @@ OrderedListLoose = a:StartList
                   ( b:OrderedListItem BlankLine* 
                     {   element *li;
                         li = b.children;
-                        (*li).contents.str = realloc((*li).contents.str, strlen((*li).contents.str) + 3);
-                        strcat((*li).contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
+                        li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
+                        strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
                         pushelt(b, &a); 
                     } )+  
                   { $$ = mk_list(ORDEREDLIST, a); }
@@ -820,8 +820,8 @@ NoteReference = &{ extension(EXT_NOTES) }
                 {   element *match;
                     if (find_note(&match, ref.contents.str)) {
                         $$ = mk_element(NOTE);
-                        assert((*match).children != NULL);
-                        $$.children = (*match).children;
+                        assert(match->children != NULL);
+                        $$.children = match->children;
                         $$.contents.str = 0;
                     } else {
                         char *s;

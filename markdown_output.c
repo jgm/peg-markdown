@@ -87,7 +87,7 @@ void print_html_string(char *str, bool obfuscate) {
 void print_html_element_list(element *list, bool obfuscate) {
     while (list != NULL) {
         print_html_element(*list, obfuscate);
-        list = (*list).next;
+        list = list->next;
     }
 }
 
@@ -289,11 +289,11 @@ void print_html_endnotes(element *endnotes) {
         pad(1);
         printf("<li id=\"fn%d\">\n", counter);
         padded = 2;
-        print_html_element_list((*endnotes).children, false);
+        print_html_element_list(endnotes->children, false);
         printf(" <a href=\"#fnref%d\" title=\"Jump back to reference\">[back]</a>", counter);
         pad(1);
         printf("</li>");
-        endnotes = (*endnotes).next;
+        endnotes = endnotes->next;
     }
     pad(1);
     printf("</ol>\n");
@@ -343,7 +343,7 @@ void print_latex_string(char *str) {
 void print_latex_element_list(element *list) {
     while (list != NULL) {
         print_latex_element(*list);
-        list = (*list).next;
+        list = list->next;
     }
 }
 
@@ -548,7 +548,7 @@ void print_groff_mm_element_list(element *list) {
     int count = 1;
     while (list != NULL) {
         print_groff_mm_element(*list, count);
-        list = (*list).next;
+        list = list->next;
         count++;
     }
 }
