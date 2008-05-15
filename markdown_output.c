@@ -296,7 +296,7 @@ void print_html_endnotes(element *endnotes) {
         endnotes = endnotes->next;
     }
     pad(1);
-    printf("</ol>\n");
+    printf("</ol>");
 }
 
 /**********************************************************************
@@ -740,8 +740,10 @@ void print_element(element elt, int format) {
     switch (format) {
     case HTML_FORMAT:
         print_html_element(elt, false);
-        pad(2);
-        print_html_endnotes(endnotes);
+        if (endnotes != NULL) {
+            pad(2);
+            print_html_endnotes(endnotes);
+        }
         break;
     case LATEX_FORMAT:
         print_latex_element(elt);
