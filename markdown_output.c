@@ -115,7 +115,7 @@ void print_html_element(element elt, bool obfuscate) {
         printf("&ndash;");
         break;
     case APOSTROPHE:
-        printf("&apos;");
+        printf("&rsquo;");
         break;
     case SINGLEQUOTED:
         printf("&lsquo;");
