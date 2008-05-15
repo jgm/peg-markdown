@@ -469,6 +469,7 @@ void print_latex_element(element elt) {
         printf("\\begin{itemize}");
         padded = 0;
         print_latex_element_list(elt.children);
+        pad(1);
         printf("\\end{itemize}");
         padded = 0;
         break;
@@ -477,19 +478,16 @@ void print_latex_element(element elt) {
         printf("\\begin{enumerate}");
         padded = 0;
         print_latex_element_list(elt.children);
+        pad(1);
         printf("\\end{enumerate}");
         padded = 0;
         break;
     case LISTITEM:
         pad(1);
         printf("\\item ");
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
-        print_latex_element(markdown(contents, extensions));
-        while ((contents = strtok(NULL, "\001")))
-            print_latex_element(markdown(contents, extensions));
+        padded = 2;
+        print_latex_element_list(elt.children);
+        printf("\n");
         break;
     case BLOCKQUOTE:
         pad(1);
@@ -696,16 +694,8 @@ void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".LI\n");
         in_list_item = true;
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
         padded = 2;
-        print_groff_mm_element(markdown(contents, extensions), 1);
-        while ((contents = strtok(NULL, "\001"))) {
-            padded = 2;
-            print_groff_mm_element(markdown(contents, extensions), 1);
-        }
+        print_groff_mm_element_list(elt.children);
         in_list_item = false;
         break;
     case BLOCKQUOTE:
