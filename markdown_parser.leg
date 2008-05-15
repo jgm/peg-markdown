@@ -581,7 +581,8 @@ Entity =    ( HexEntity | DecEntity | CharEntity )
 
 Endline =   TerminalEndline | NormalEndline
 
-NormalEndline =   Sp Newline !BlankLine
+NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
+                  !(Line ("===" '='* | "---" '-'*) Newline)
                   { $$.key = SPACE; $$.contents.str = "\n"; }
 
 TerminalEndline = Sp Newline Eof
