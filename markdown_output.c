@@ -243,7 +243,7 @@ void print_html_element(element elt, bool obfuscate) {
     case LISTITEM:
         pad(1);
         printf("<li>");
-        padded = true;
+        padded = 2;
         print_html_element_list(elt.children, obfuscate);
         printf("</li>");
         padded = 0;
