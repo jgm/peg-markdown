@@ -292,7 +292,11 @@ BlockQuote = a:BlockQuoteRaw
                 $$.children = raw;
              }  
 
-BlockQuoteRaw =  a:StartList ( '>' ' '? Line { pushelt($$, &a); } )+
+BlockQuoteRaw =  a:StartList
+                 (( '>' ' '? Line { pushelt($$, &a); } )
+                  ( !'>' !BlankLine Line { pushelt($$, &a); } )*
+                  ( BlankLine { pushelt($$, &a); } )*
+                 )+
                  {   char *c = concat_string_list(reverse(a.children));
                      strcat(c, "\n");  /* Note: an extra byte was allocated for this */
                      $$ = mk_str(c);
