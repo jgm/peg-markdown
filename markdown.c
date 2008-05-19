@@ -86,8 +86,8 @@ int main(int argc, char * argv[]) {
     FILE *inputs[argc];     /* array of file pointers for inputs */
     int lastinp;            /* index of last file in inputs */
     int i;
-    int buflength = 0;
-    int maxlength = INCREMENT;
+    size_t buflength = 0;
+    size_t maxlength = INCREMENT;
 
     char *inputbuf;
 
