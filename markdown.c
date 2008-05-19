@@ -82,6 +82,18 @@ void usage(char *progname)
 
 int main(int argc, char * argv[]) {
 
+    int numargs;            /* number of filename arguments */
+    FILE *inputs[argc];     /* array of file pointers for inputs */
+    int lastinp;            /* index of last file in inputs */
+    int i;
+    int buflength = 0;
+    int maxlength = INCREMENT;
+
+    char *inputbuf;
+
+    FILE *input;
+    char *curchar;
+    int charstotab;
     char *progname = argv[0];
     int opt;
     /* the output filename is initially 0 (a.k.a. stdout) */
@@ -90,6 +102,7 @@ int main(int argc, char * argv[]) {
     char *exts = 0;
 
     int output_format = HTML_FORMAT;
+    element parsed_input; 
 
     char *shortopts = "Vhx::o:t:";
     /* long options list */
@@ -168,18 +181,7 @@ int main(int argc, char * argv[]) {
             return 1;
         }
 
-    int numargs;            /* number of filename arguments */
-    FILE *inputs[argc];     /* array of file pointers for inputs */
-    int lastinp;            /* index of last file in inputs */
-    int i;
-    int buflength = 0;
-    int maxlength = INCREMENT;
-    char *inputbuf;
-    inputbuf = malloc(INCREMENT);
-    FILE *input;
-    char *curchar = inputbuf;
-    int charstotab;
-     
+    
     numargs = argc - optind; 
     if (numargs == 0) {        /* use stdin if no files specified */
        inputs[0] = stdin;
@@ -193,6 +195,9 @@ int main(int argc, char * argv[]) {
             }
        lastinp = i - 1;
     }
+    
+    inputbuf = malloc(INCREMENT);
+    curchar = inputbuf;
    
     for (i=0; i <= lastinp; i++) {
         input = inputs[i];
@@ -227,7 +232,7 @@ int main(int argc, char * argv[]) {
 
     strcat(inputbuf, strdup("\n\n"));   /* add newlines to end to match Markdown.pl behavior */
    
-    element parsed_input = markdown(inputbuf, extensions);
+    parsed_input = markdown(inputbuf, extensions);
 
     print_element(parsed_input, output_format);
 
