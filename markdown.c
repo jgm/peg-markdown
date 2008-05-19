@@ -233,6 +233,8 @@ int main(int argc, char * argv[]) {
 
     printf("\n");
 
+    free(inputbuf);
+
     return(EXIT_SUCCESS);
 }
 
