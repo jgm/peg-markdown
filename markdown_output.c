@@ -25,6 +25,16 @@
 /* TODO remove */
 static extensions = 0;
 
+static void print_html_string(char *str, bool obfuscate);
+static void print_html_element_list(element *list, bool obfuscate);
+static void print_html_element(element elt, bool obfuscate);
+static void print_latex_string(char *str);
+static void print_latex_element_list(element *list);
+static void print_latex_element(element elt);
+static void print_groff_string(char *str);
+static void print_groff_mm_element_list(element *list);
+static void print_groff_mm_element(element elt, int count);
+
 /**********************************************************************
 
   Utility functions for printing
@@ -41,7 +51,7 @@ static int notenumber = 0;  /* Number of footnote. */
 /* pad - add newlines if needed */
 static void pad(int num) {
     while (num-- > padded)
-        printf("\n");
+        printf("%s","\n");;
     padded = num;
 }
 
@@ -53,38 +63,37 @@ static void pad(int num) {
 
 /* print_html_string - print string, escaping for HTML  
  * If obfuscate selected, convert characters to hex or decimal entities at random */
-void print_html_string(char *str, bool obfuscate) {
+static void print_html_string(char *str, bool obfuscate) {
     while (*str != '\0') {
         switch (*str) {
         case '&':
-            printf("&amp;");
+            printf("%s","&amp;");;
             break;
         case '<':
-            printf("&lt;");
+            printf("%s","&lt;");;
             break;
         case '>':
-            printf("&gt;");
+            printf("%s","&gt;");;
             break;
         case '"':
-            printf("&quot;");
+            printf("%s","&quot;");;
             break;
         default:
             if (obfuscate) {
                 if (rand() % 2 == 0)
-                    printf("&#%d;", *str);
+                    printf("&#%d;", (int) *str);
                 else
-                    printf("&#x%x;", *str);
+                    printf("&#x%x;", (unsigned int) *str);
             }
             else
                 putchar(*str);
-            break;
         }
     str++;
     }
 }
 
 /* print_html_element_list - print a list of elements as HTML */
-void print_html_element_list(element *list, bool obfuscate) {
+static void print_html_element_list(element *list, bool obfuscate) {
     while (list != NULL) {
         print_html_element(*list, obfuscate);
         list = list->next;
@@ -92,7 +101,7 @@ void print_html_element_list(element *list, bool obfuscate) {
 }
 
 /* print_html_element - print an element as HTML */
-void print_html_element(element elt, bool obfuscate) {
+static void print_html_element(element elt, bool obfuscate) {
     int lev;
     char *contents;
     switch (elt.key) {
@@ -100,40 +109,40 @@ void print_html_element(element elt, bool obfuscate) {
         printf("%s", elt.contents.str);
         break;
     case LINEBREAK:
-        printf("<br/>");
+        printf("%s","<br/>");;
         break;
     case STR:
         print_html_string(elt.contents.str, obfuscate);
         break;
     case ELLIPSIS:
-        printf("&hellip;");
+        printf("%s","&hellip;");;
         break;
     case EMDASH:
-        printf("&mdash;");
+        printf("%s","&mdash;");;
         break;
     case ENDASH:
-        printf("&ndash;");
+        printf("%s","&ndash;");;
         break;
     case APOSTROPHE:
-        printf("&rsquo;");
+        printf("%s","&rsquo;");;
         break;
     case SINGLEQUOTED:
-        printf("&lsquo;");
+        printf("%s","&lsquo;");;
         print_html_element_list(elt.children, obfuscate);
-        printf("&rsquo;");
+        printf("%s","&rsquo;");;
         break;
     case DOUBLEQUOTED:
-        printf("&ldquo;");
+        printf("%s","&ldquo;");;
         print_html_element_list(elt.children, obfuscate);
-        printf("&rdquo;");
+        printf("%s","&rdquo;");;
         break;
     case CODE:
-        printf("<code>");
+        printf("%s","<code>");;
         print_html_string(elt.contents.str, obfuscate);
-        printf("</code>");
+        printf("%s","</code>");;
         break;
     case HTML:
-        printf(elt.contents.str);
+        printf("%s", elt.contents.str);
         break;
     case LINK:
         if (strstr(elt.contents.link.url, "mailto:") == elt.contents.link.url)
@@ -146,9 +155,9 @@ void print_html_element(element elt, bool obfuscate) {
             print_html_string(elt.contents.link.title, obfuscate);
             printf("\"");
         }
-        printf(">");     
+        printf("%s",">");;     
         print_html_element_list(elt.contents.link.label, obfuscate);
-        printf("</a>");
+        printf("%s","</a>");;
         break;
     case IMAGE:
         printf("<img src=\"");
@@ -161,17 +170,17 @@ void print_html_element(element elt, bool obfuscate) {
             print_html_string(elt.contents.link.title, obfuscate);
             printf("\"");
         }
-        printf(" />");
+        printf("%s"," />");;
         break;
     case EMPH:
-        printf("<em>");
+        printf("%s","<em>");;
         print_html_element_list(elt.children, obfuscate);
-        printf("</em>");
+        printf("%s","</em>");;
         break;
     case STRONG:
-        printf("<strong>");
+        printf("%s","<strong>");;
         print_html_element_list(elt.children, obfuscate);
-        printf("</strong>");
+        printf("%s","</strong>");;
         break;
     case LIST:
         print_html_element_list(elt.children, obfuscate);
@@ -200,61 +209,61 @@ void print_html_element(element elt, bool obfuscate) {
         break;
     case PARA:
         pad(2);
-        printf("<p>");
+        printf("%s","<p>");;
         print_html_element_list(elt.children, obfuscate);
-        printf("</p>");
+        printf("%s","</p>");;
         padded = 0;
         break;
     case HRULE:
         pad(2);
-        printf("<hr />");
+        printf("%s","<hr />");;
         padded = 0;
         break;
     case HTMLBLOCK:
         pad(2);
-        printf(elt.contents.str);
+        printf("%s", elt.contents.str);
         padded = 0;
         break;
     case VERBATIM:
         pad(2);
-        printf("<pre><code>");
+        printf("%s", "<pre><code>");
         print_html_string(elt.contents.str, obfuscate);
-        printf("</code></pre>");
+        printf("%s", "</code></pre>");
         padded = 0;
         break;
     case BULLETLIST:
         pad(2);
-        printf("<ul>");
+        printf("%s", "<ul>");
         padded = 0;
         print_html_element_list(elt.children, obfuscate);
         pad(1);
-        printf("</ul>");
+        printf("%s", "</ul>");
         padded = 0;
         break;
     case ORDEREDLIST:
         pad(2);
-        printf("<ol>");
+        printf("%s", "<ol>");
         padded = 0;
         print_html_element_list(elt.children, obfuscate);
         pad(1);
-        printf("</ol>");
+        printf("%s","</ol>");;
         padded = 0;
         break;
     case LISTITEM:
         pad(1);
-        printf("<li>");
+        printf("%s","<li>");;
         padded = 2;
         print_html_element_list(elt.children, obfuscate);
-        printf("</li>");
+        printf("%s","</li>");;
         padded = 0;
         break;
     case BLOCKQUOTE:
         pad(2);
-        printf("<blockquote>\n");
+        printf("%s","<blockquote>\n");;
         padded = 2;
         print_html_element_list(elt.children, obfuscate);
         pad(1);
-        printf("</blockquote>");
+        printf("%s","</blockquote>");;
         padded = 0;
         break;
     case REFERENCE:
@@ -273,11 +282,10 @@ void print_html_element(element elt, bool obfuscate) {
     default: 
         fprintf(stderr, "print_html_element encountered unknown element key = %d\n", elt.key); 
         exit(EXIT_FAILURE);
-        break;
     }
 }
 
-void print_html_endnotes(element *endnotes) {
+static void print_html_endnotes(void) {
     int counter = 0;
     if (endnotes == NULL) {
         return;
@@ -292,11 +300,11 @@ void print_html_endnotes(element *endnotes) {
         print_html_element_list(endnotes->children, false);
         printf(" <a href=\"#fnref%d\" title=\"Jump back to reference\">[back]</a>", counter);
         pad(1);
-        printf("</li>");
+        printf("%s","</li>");
         endnotes = endnotes->next;
     }
     pad(1);
-    printf("</ol>");
+    printf("%s","</ol>");;
 }
 
 /**********************************************************************
@@ -306,7 +314,7 @@ void print_html_endnotes(element *endnotes) {
  ***********************************************************************/
 
 /* print_latex_string - print string, escaping for LaTeX */
-void print_latex_string(char *str) {
+static void print_latex_string(char *str) {
     while (*str != '\0') {
         switch (*str) {
           case '{': case '}': case '$': case '%':
@@ -314,33 +322,32 @@ void print_latex_string(char *str) {
             printf("\\%c", *str);
             break;
         case '^':
-            printf("\\^{}");
+            printf("%s","\\^{}");;
             break;
         case '\\':
-            printf("\\textbackslash{}");
+            printf("%s","\\textbackslash{}");;
             break;
         case '~':
-            printf("\\ensuremath{\\sim}");
+            printf("%s","\\ensuremath{\\sim}");;
             break;
         case '|':
-            printf("\\textbar{}");
+            printf("%s","\\textbar{}");;
             break;
         case '<':
-            printf("\\textless{}");
+            printf("%s","\\textless{}");;
             break;
         case '>':
-            printf("\\textgreater{}");
+            printf("%s","\\textgreater{}");;
             break;
         default:
             putchar(*str);
-            break;
         }
     str++;
     }
 }
 
 /* print_latex_element_list - print a list of elements as LaTeX */
-void print_latex_element_list(element *list) {
+static void print_latex_element_list(element *list) {
     while (list != NULL) {
         print_latex_element(*list);
         list = list->next;
@@ -348,7 +355,7 @@ void print_latex_element_list(element *list) {
 }
 
 /* print_latex_element - print an element as LaTeX */
-void print_latex_element(element elt) {
+static void print_latex_element(element elt) {
     int lev;
     int i;
     char *contents;
@@ -357,37 +364,37 @@ void print_latex_element(element elt) {
         printf("%s", elt.contents.str);
         break;
     case LINEBREAK:
-        printf("\\\\\n");
+        printf("%s","\\\\\n");;
         break;
     case STR:
         print_latex_string(elt.contents.str);
         break;
     case ELLIPSIS:
-        printf("\\ldots{}");
+        printf("%s","\\ldots{}");;
         break;
     case EMDASH: 
-        printf("---");
+        printf("%s","---");;
         break;
     case ENDASH: 
-        printf("--");
+        printf("%s","--");;
         break;
     case APOSTROPHE:
-        printf("'");
+        printf("%s","'");;
         break;
     case SINGLEQUOTED:
-        printf("`");
+        printf("%s","`");;
         print_latex_element_list(elt.children);
-        printf("'");
+        printf("%s","'");;
         break;
     case DOUBLEQUOTED:
-        printf("``");
+        printf("%s","``");;
         print_latex_element_list(elt.children);
-        printf("''");
+        printf("%s","''");;
         break;
     case CODE:
-        printf("\\texttt{");
+        printf("%s","\\texttt{");;
         print_latex_string(elt.contents.str);
-        printf("}");
+        printf("%s","}");;
         break;
     case HTML:
         /* don't print HTML */
@@ -395,20 +402,20 @@ void print_latex_element(element elt) {
     case LINK:
         printf("\\href{%s}{", elt.contents.link.url);
         print_latex_element_list(elt.contents.link.label);
-        printf("}");
+        printf("%s","}");;
         break;
     case IMAGE:
         printf("\\includegraphics{%s}", elt.contents.link.url);
         break;
     case EMPH:
-        printf("\\emph{");
+        printf("%s","\\emph{");;
         print_latex_element_list(elt.children);
-        printf("}");
+        printf("%s","}");;
         break;
     case STRONG:
-        printf("\\textbf{");
+        printf("%s","\\textbf{");;
         print_latex_element_list(elt.children);
-        printf("}");
+        printf("%s","}");;
         break;
     case LIST:
         print_latex_element_list(elt.children);
@@ -425,20 +432,21 @@ void print_latex_element(element elt) {
     case H1: case H2: case H3:
         pad(2);
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
-        printf("\\");
+        printf("%s","\\");;
         for (i = elt.key; i > H1; i--)
-            printf("sub");
-        printf("section{");
+            printf("%s","sub");;
+        printf("%s","section{");;
         print_latex_element_list(elt.children);
-        printf("}");
+        printf("%s","}");;
         padded = 0;
         break;
     case H4: case H5: case H6:
         pad(2);
-        printf("\\noindent\\textbf{");
+        printf("%s","\\noindent\\textbf{");;
         print_latex_element_list(elt.children);
-        printf("}");
+        printf("%s","}");;
         padded = 0;
+        break;
     case PLAIN:
         pad(1);
         print_latex_element_list(elt.children);
@@ -451,7 +459,7 @@ void print_latex_element(element elt) {
         break;
     case HRULE:
         pad(2);
-        printf("\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");
+        printf("%s","\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");;
         padded = 0;
         break;
     case HTMLBLOCK:
@@ -459,52 +467,52 @@ void print_latex_element(element elt) {
         break;
     case VERBATIM:
         pad(1);
-        printf("\\begin{verbatim}\n");
+        printf("%s","\\begin{verbatim}\n");;
         print_latex_string(elt.contents.str);
-        printf("\n\\end{verbatim}");
+        printf("%s","\n\\end{verbatim}");;
         padded = 0;
         break;
     case BULLETLIST:
         pad(1);
-        printf("\\begin{itemize}");
+        printf("%s","\\begin{itemize}");;
         padded = 0;
         print_latex_element_list(elt.children);
         pad(1);
-        printf("\\end{itemize}");
+        printf("%s","\\end{itemize}");;
         padded = 0;
         break;
     case ORDEREDLIST:
         pad(1);
-        printf("\\begin{enumerate}");
+        printf("%s","\\begin{enumerate}");;
         padded = 0;
         print_latex_element_list(elt.children);
         pad(1);
-        printf("\\end{enumerate}");
+        printf("%s","\\end{enumerate}");;
         padded = 0;
         break;
     case LISTITEM:
         pad(1);
-        printf("\\item ");
+        printf("%s","\\item ");;
         padded = 2;
         print_latex_element_list(elt.children);
-        printf("\n");
+        printf("%s","\n");;
         break;
     case BLOCKQUOTE:
         pad(1);
-        printf("\\begin{quote}");
+        printf("%s","\\begin{quote}");;
         padded = 0;
         print_latex_element(markdown(elt.contents.str, extensions));
-        printf("\\end{quote}");
+        printf("%s","\\end{quote}");;
         padded = 0;
         break;
     case NOTE:
         /* if contents.str == 0, then print note; else ignore, since this
          * is a note block that has been incorporated into the notes list */
         if (elt.contents.str == 0) {
-            printf("\\footnote{");
+            printf("%s","\\footnote{");;
             padded = 2;
             print_latex_element_list(elt.children);
-            printf("}");
+            printf("%s","}");;
             padded = 0; 
         }
         break;
@@ -514,7 +522,6 @@ void print_latex_element(element elt) {
     default: 
         fprintf(stderr, "print_latex_element encountered unknown element key = %d\n", elt.key); 
         exit(EXIT_FAILURE);
-        break;
     }
 }
 
@@ -527,22 +534,21 @@ void print_latex_element(element elt) {
 static bool in_list_item = false; /* True if we're parsing contents of a list item. */
 
 /* print_groff_string - print string, escaping for groff */
-void print_groff_string(char *str) {
+static void print_groff_string(char *str) {
     while (*str != '\0') {
         switch (*str) {
         case '\\':
-            printf("\\e");
+            printf("%s","\\e");;
             break;
         default:
             putchar(*str);
-            break;
         }
     str++;
     }
 }
 
 /* print_groff_mm_element_list - print a list of elements as groff ms */
-void print_groff_mm_element_list(element *list) {
+static void print_groff_mm_element_list(element *list) {
     int count = 1;
     while (list != NULL) {
         print_groff_mm_element(*list, count);
@@ -552,7 +558,7 @@ void print_groff_mm_element_list(element *list) {
 }
 
 /* print_groff_mm_element - print an element as groff ms */
-void print_groff_mm_element(element elt, int count) {
+static void print_groff_mm_element(element elt, int count) {
     int lev;
     char *contents;
     switch (elt.key) {
@@ -562,7 +568,7 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case LINEBREAK:
         pad(1);
-        printf(".br");
+        printf("%s",".br");;
         padded = 0;
         break;
     case STR:
@@ -570,31 +576,31 @@ void print_groff_mm_element(element elt, int count) {
         padded = 0;
         break;
     case ELLIPSIS:
-        printf("...");
+        printf("%s","...");;
         break;
     case EMDASH:
-        printf("\\[em]");
+        printf("%s","\\[em]");;
         break;
     case ENDASH:
-        printf("\\[en]");
+        printf("%s","\\[en]");;
         break;
     case APOSTROPHE:
-        printf("'");
+        printf("%s","'");;
         break;
     case SINGLEQUOTED:
-        printf("`");
+        printf("%s","`");;
         print_groff_mm_element_list(elt.children);
-        printf("'");
+        printf("%s","'");;
         break;
     case DOUBLEQUOTED:
-        printf("\\[lq]");
+        printf("%s","\\[lq]");;
         print_groff_mm_element_list(elt.children);
-        printf("\\[rq]");
+        printf("%s","\\[rq]");;
         break;
     case CODE:
-        printf("\\fC");
+        printf("%s","\\fC");;
         print_groff_string(elt.contents.str);
-        printf("\\fR");
+        printf("%s","\\fR");;
         padded = 0;
         break;
     case HTML:
@@ -606,22 +612,22 @@ void print_groff_mm_element(element elt, int count) {
         padded = 0;
         break;
     case IMAGE:
-        printf("[IMAGE: ");
+        printf("%s","[IMAGE: ");;
         print_groff_mm_element_list(elt.contents.link.label);
-        printf("]");
+        printf("%s","]");;
         padded = 0;
         /* not supported */
         break;
     case EMPH:
-        printf("\\fI");
+        printf("%s","\\fI");;
         print_groff_mm_element_list(elt.children);
-        printf("\\fR");
+        printf("%s","\\fR");;
         padded = 0;
         break;
     case STRONG:
-        printf("\\fB");
+        printf("%s","\\fB");;
         print_groff_mm_element_list(elt.children);
-        printf("\\fR");
+        printf("%s","\\fR");;
         padded = 0;
         break;
     case LIST:
@@ -653,13 +659,13 @@ void print_groff_mm_element(element elt, int count) {
     case PARA:
         pad(1);
         if (!in_list_item || count != 1)
-            printf(".P\n");
+            printf("%s",".P\n");;
         print_groff_mm_element_list(elt.children);
         padded = 0;
         break;
     case HRULE:
         pad(1);
-        printf("\\l'\\n(.lu*8u/10u'");
+        printf("%s","\\l'\\n(.lu*8u/10u'");;
         padded = 0;
         break;
     case HTMLBLOCK:
@@ -667,32 +673,32 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case VERBATIM:
         pad(1);
-        printf(".VERBON 2\n");
+        printf("%s",".VERBON 2\n");;
         print_groff_string(elt.contents.str);
-        printf(".VERBOFF");
+        printf("%s",".VERBOFF");;
         padded = 0;
         break;
     case BULLETLIST:
         pad(1);
-        printf(".BL");
+        printf("%s",".BL");;
         padded = 0;
         print_groff_mm_element_list(elt.children);
         pad(1);
-        printf(".LE 1");
+        printf("%s",".LE 1");;
         padded = 0;
         break;
     case ORDEREDLIST:
         pad(1);
-        printf(".AL");
+        printf("%s",".AL");;
         padded = 0;
         print_groff_mm_element_list(elt.children);
         pad(1);
-        printf(".LE 1");
+        printf("%s",".LE 1");;
         padded = 0;
         break;
     case LISTITEM:
         pad(1);
-        printf(".LI\n");
+        printf("%s",".LI\n");;
         in_list_item = true;
         padded = 2;
         print_groff_mm_element_list(elt.children);
@@ -700,23 +706,23 @@ void print_groff_mm_element(element elt, int count) {
         break;
     case BLOCKQUOTE:
         pad(1);
-        printf(".DS I\n");
+        printf("%s",".DS I\n");;
         padded = 2;
         print_groff_mm_element(markdown(elt.contents.str, extensions), 1);
         pad(1);
-        printf(".DE");
+        printf("%s",".DE");;
         padded = 0;
         break;
     case NOTE:
         /* if contents.str == 0, then print note; else ignore, since this
          * is a note block that has been incorporated into the notes list */
         if (elt.contents.str == 0) {
-            printf("\\*F\n");
-            printf(".FS\n");
+            printf("%s","\\*F\n");;
+            printf("%s",".FS\n");;
             padded = 2;
             print_groff_mm_element_list(elt.children);
             pad(1);
-            printf(".FE\n");
+            printf("%s",".FE\n");;
             padded = 1; 
         }
         break;
@@ -726,7 +732,6 @@ void print_groff_mm_element(element elt, int count) {
     default: 
         fprintf(stderr, "print_groff_mm_element encountered unknown element key = %d\n", elt.key); 
         exit(EXIT_FAILURE);
-        break;
     }
 }
 
@@ -742,7 +747,7 @@ void print_element(element elt, int format) {
         print_html_element(elt, false);
         if (endnotes != NULL) {
             pad(2);
-            print_html_endnotes(endnotes);
+            print_html_endnotes();
         }
         break;
     case LATEX_FORMAT:
@@ -754,6 +759,5 @@ void print_element(element elt, int format) {
     default:
         fprintf(stderr, "print_element - unknown format = %d\n", format); 
         exit(EXIT_FAILURE);
-        break;
     }
 }

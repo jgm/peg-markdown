@@ -80,16 +80,5 @@ enum formats { HTML_FORMAT,
                GROFF_MM_FORMAT
              };
 
-void print_html_string(char *str, bool obfuscate);
-void print_html_element(element elt, bool obfuscate);
-void print_html_element_list(element *list, bool obfuscate);
-void print_latex_string(char *str);
-void print_latex_element(element elt);
-void print_latex_element_list(element *list);
-void print_latex_element(element elt);
-void print_groff_string(char *str);
-void print_groff_mm_element(element elt, int count);
-void print_groff_mm_element_list(element *list);
-void print_groff_mm_element(element elt, int count);
 void print_element(element elt, int format);
 

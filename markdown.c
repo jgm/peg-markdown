@@ -153,10 +153,8 @@ int main(int argc, char * argv[]) {
         case 'o': /* -output=FILE */
             outfilename = optarg;
             /* we allow "-" as a synonym for stdout here */
-            if (! strcmp(optarg, "-"))
-            {
+            if (strcmp(optarg, "-") == 0)
                 outfilename = 0;
-            }
             break;
         default: /* something unexpected has happened */
             usage(progname);
