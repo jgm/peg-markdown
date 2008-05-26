@@ -22,8 +22,7 @@
 #include <assert.h>
 #include "markdown_peg.h"
 
-/* TODO remove */
-static extensions = 0;
+static extensions;
 
 static void print_html_string(char *str, bool obfuscate);
 static void print_html_element_list(element *list, bool obfuscate);
@@ -741,7 +740,8 @@ static void print_groff_mm_element(element elt, int count) {
 
  ***********************************************************************/
 
-void print_element(element elt, int format) {
+void print_element(element elt, int format, int exts) {
+    extensions = exts;
     switch (format) {
     case HTML_FORMAT:
         print_html_element(elt, false);

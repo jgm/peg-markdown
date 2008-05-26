@@ -80,5 +80,5 @@ enum formats { HTML_FORMAT,
                GROFF_MM_FORMAT
              };
 
-void print_element(element elt, int format);
+void print_element(element elt, int format, int extensions);
 
