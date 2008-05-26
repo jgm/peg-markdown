@@ -117,6 +117,18 @@ static element mk_str(char *string) {
     return result;
 }
 
+/* mk_str_from_list - makes STR element by concatenating a
+ * reversed list of strings, adding optional extra newline */
+static element mk_str_from_list(element *list, bool extra_newline) {
+    element result;
+    char *c = concat_string_list(reverse(list));
+    if (extra_newline)
+        strcat(c, "\n");  /* concate_string_list allocates extra byte for this */
+    result = mk_element(STR);
+    result.contents.str = c;
+    return result;
+}
+
 /* mk_list - constructs an element with key 'key' and children from 'lst' (reversed).
  * This is designed to be used with pushelt to build lists in a parser action. 
  * The reversing is necessary because pushelt adds to the head of a list. */
@@ -297,9 +309,7 @@ BlockQuoteRaw =  a:StartList
                   ( !'>' !BlankLine Line { pushelt($$, &a); } )*
                   ( BlankLine { pushelt($$, &a); } )*
                  )+
-                 {   char *c = concat_string_list(reverse(a.children));
-                     strcat(c, "\n");  /* Note: an extra byte was allocated for this */
-                     $$ = mk_str(c);
+                 {   $$ = mk_str_from_list(a.children, true);
                      $$.key = RAW;
                  }
 
@@ -308,10 +318,11 @@ NonblankIndentedLine = !BlankLine IndentedLine
 VerbatimChunk = a:StartList 
                 ( BlankLine { pushelt($$, &a); } )* 
                 ( NonblankIndentedLine { pushelt($$, &a); } )+
-                { $$ = mk_str(concat_string_list(reverse(a.children))); }
+                { $$ = mk_str_from_list(a.children, false); }
 
 Verbatim =     a:StartList ( VerbatimChunk { pushelt($$, &a); } )+
-               { $$ = mk_str(concat_string_list(reverse(a.children))); $$.key = VERBATIM; }
+               { $$ = mk_str_from_list(a.children, false);
+                 $$.key = VERBATIM; }
 
 HorizontalRule = NonindentSpace 
                  ( '*' Sp '*' Sp '*' (Sp '*')* 
@@ -347,7 +358,7 @@ ListItem =       ( Bullet | Enumerator )
                  ( ListContinuationBlock { pushelt($$, &a); } )*
                  {  element *raw;
                     raw = malloc(sizeof(element));
-                    *raw = mk_str(concat_string_list(reverse(a.children)));
+                    *raw = mk_str_from_list(a.children, false);
                     raw->key = RAW;
                     $$ = mk_element(LISTITEM);
                     $$.children = raw;
@@ -356,7 +367,7 @@ ListItem =       ( Bullet | Enumerator )
 ListBlock = a:StartList 
             Line { pushelt($$, &a); }
             ( ListBlockLine { pushelt($$, &a); } )*
-            { $$ = mk_str(concat_string_list(reverse(a.children))); }
+            { $$ = mk_str_from_list(a.children, false); }
 
 ListContinuationBlock = a:StartList 
                         ( BlankLines  
@@ -364,7 +375,7 @@ ListContinuationBlock = a:StartList
                                    $$.contents.str = strdup("\001"); /* block separator */
                                pushelt($$, &a); } )
                         ( Indent ListBlock { pushelt($$, &a); } )+
-                        { $$ = mk_str(concat_string_list(reverse(a.children))); }
+                        { $$ = mk_str_from_list(a.children, false); }
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
@@ -863,9 +874,7 @@ Notes =         a:StartList
 RawNoteBlock =  a:StartList
                 ( !BlankLine OptionallyIndentedLine { pushelt($$, &a); } )+
                 ( BlankLine { pushelt($$, &a); } )* 
-                {   char *c = concat_string_list(reverse(a.children));
-                    strcat(c, "\n");  /* Note: an extra byte was allocated for this */
-                    $$ = mk_str(c);
+                {   $$ = mk_str_from_list(a.children, true);
                     $$.key = RAW;
                 }
 
