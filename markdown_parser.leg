@@ -105,6 +105,7 @@ static element mk_element(int key) {
     result.key = key;
     result.children = NULL;
     result.next = NULL;
+    result.contents.str = NULL;
     return result;
 }
 
@@ -583,7 +584,7 @@ Inline  = Str
         | Symbol
 
 Space = Spacechar+ 
-        { $$.key = SPACE; $$.contents.str = " "; }
+        { $$.key = SPACE; $$.contents.str = strdup(" "); }
 
 Str =   < NormalChar+ > 
         { $$ = mk_str(yytext); }
@@ -598,10 +599,10 @@ Endline =   TerminalEndline | NormalEndline
 
 NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
                   !(Line ("===" '='* | "---" '-'*) Newline)
-                  { $$.key = SPACE; $$.contents.str = "\n"; }
+                  { $$.key = SPACE; $$.contents.str = strdup("\n"); }
 
 TerminalEndline = Sp Newline Eof
-                  { $$.key = SPACE; $$.contents.str = ""; }
+                  { $$.key = SPACE; $$.contents.str = strdup(""); }
 
 LineBreak = "  " Endline 
             { $$.key = LINEBREAK; }
@@ -879,6 +880,38 @@ RawNoteBlock =  a:StartList
                 }
 
 %%
+
+/* free_element - free next and child elements recursively */
+static void free_element_tree(element * elt) {
+    element * next = NULL;
+    while (elt != NULL) {
+        next = elt->next;
+        if (elt->children != NULL && elt->key != SPACE) {
+            free_element_tree(elt->children);
+            elt->children = NULL;
+        }
+        if (elt->key == STR || elt->key == RAW) {
+            free(elt->contents.str);
+            elt->contents.str = NULL;
+        }
+        free(elt);
+        elt = next;
+    }
+}
+
+/* free_element - free element recursively */
+void markdown_free(element result) {
+    if (result.children) {
+        free_element_tree(result.children);
+        result.children = NULL;
+    }
+    if (result.next) {
+        free_element_tree(result.next);
+        result.next = NULL;
+    }
+    if (result.key == STR || result.key == RAW)
+        free(result.contents.str);
+}
 
 element markdown(char *string, int extensions) {
 

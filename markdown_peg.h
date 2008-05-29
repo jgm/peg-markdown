@@ -73,6 +73,9 @@ enum markdown_extensions {
 element *cons(element new, element *list);
 element *reverse(element *list);
 element markdown(char *string, int extensions);
+void markdown_free(element);
+
+
 
 /* Output formats. */
 enum formats { HTML_FORMAT,

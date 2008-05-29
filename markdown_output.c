@@ -103,6 +103,7 @@ static void print_html_element_list(element *list, bool obfuscate) {
 static void print_html_element(element elt, bool obfuscate) {
     int lev;
     char *contents;
+    element res;
     switch (elt.key) {
     case SPACE:
         printf("%s", elt.contents.str);
@@ -189,9 +190,14 @@ static void print_html_element(element elt, bool obfuscate) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_html_element(markdown(contents, extensions), obfuscate);
-        while ((contents = strtok(NULL, "\001")))
-            print_html_element(markdown(contents, extensions), obfuscate);
+        res = markdown(contents, extensions);
+        print_html_element(res, obfuscate);
+        markdown_free(res);
+        while ((contents = strtok(NULL, "\001"))) {
+            res = markdown(contents, extensions);
+            print_html_element(res, obfuscate);
+            markdown_free(res);
+        }
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
@@ -358,6 +364,7 @@ static void print_latex_element(element elt) {
     int lev;
     int i;
     char *contents;
+    element res;
     switch (elt.key) {
     case SPACE:
         printf("%s", elt.contents.str);
@@ -424,9 +431,14 @@ static void print_latex_element(element elt) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_latex_element(markdown(contents, extensions));
-        while ((contents = strtok(NULL, "\001")))
-            print_latex_element(markdown(contents, extensions));
+        res = markdown(contents, extensions);
+        print_latex_element(res);
+        markdown_free(res);
+        while ((contents = strtok(NULL, "\001"))) {
+            res = markdown(contents, extensions);
+            print_latex_element(res);
+            markdown_free(res);
+        }
         break;
     case H1: case H2: case H3:
         pad(2);
@@ -500,7 +512,9 @@ static void print_latex_element(element elt) {
         pad(1);
         printf("\\begin{quote}");;;
         padded = 0;
-        print_latex_element(markdown(elt.contents.str, extensions));
+        res = markdown(elt.contents.str, extensions);
+        print_latex_element(res);
+        markdown_free(res);
         printf("\\end{quote}");;;
         padded = 0;
         break;
@@ -560,6 +574,7 @@ static void print_groff_mm_element_list(element *list) {
 static void print_groff_mm_element(element elt, int count) {
     int lev;
     char *contents;
+    element res;
     switch (elt.key) {
     case SPACE:
         printf("%s", elt.contents.str);
@@ -638,9 +653,14 @@ static void print_groff_mm_element(element elt, int count) {
          * is no blank line.  We split the string by \001 and parse
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
-        print_groff_mm_element(markdown(contents, extensions), count);
-        while ((contents = strtok(NULL, "\001")))
-            print_groff_mm_element(markdown(contents, extensions), count);
+        res = markdown(contents, extensions);
+        print_groff_mm_element(res, count);
+        markdown_free(res);
+        while ((contents = strtok(NULL, "\001"))) {
+            res = markdown(contents, extensions);
+            print_groff_mm_element(res, count);
+            markdown_free(res);
+        }
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;
@@ -707,7 +727,9 @@ static void print_groff_mm_element(element elt, int count) {
         pad(1);
         printf(".DS I\n");;;
         padded = 2;
-        print_groff_mm_element(markdown(elt.contents.str, extensions), 1);
+        res = markdown(elt.contents.str, extensions);
+        print_groff_mm_element(res, 1);
+        markdown_free(res);
         pad(1);
         printf(".DE");;;
         padded = 0;

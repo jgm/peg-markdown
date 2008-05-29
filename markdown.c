@@ -238,6 +238,7 @@ int main(int argc, char * argv[]) {
 
     printf("\n");
 
+    markdown_free(parsed_input);
     free(inputbuf);
 
     return(EXIT_SUCCESS);
