@@ -1,4 +1,5 @@
 /* markdown_peg.h */
+#include "markdown_lib.h"
 
 extern char *strdup(const char *string);
 
@@ -65,23 +66,9 @@ struct Element {
 
 typedef struct Element element;
 
-enum markdown_extensions { 
-    EXT_SMART            = 1,
-    EXT_NOTES            = 2
-};  
-
 element *cons(element new, element *list);
 element *reverse(element *list);
 element markdown(char *string, int extensions);
 void markdown_free(element);
-
-
-
-/* Output formats. */
-enum formats { HTML_FORMAT,
-               LATEX_FORMAT,
-               GROFF_MM_FORMAT
-             };
-
 void print_element(element elt, FILE * stream, int format, int extensions);
 

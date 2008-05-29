@@ -44,7 +44,6 @@ static int extensions;
                   "This is free software: you are free to change and redistribute it.\n" \
                   "There is NO WARRANTY, to the extent permitted by law."
 
-#define TABSTOP 4
 #define INCREMENT 4096  /* size of chunks in which to allocate memory */
 
 /* print version and copyright information */
@@ -93,7 +92,6 @@ int main(int argc, char * argv[]) {
 
     FILE *input;
     char *curchar;
-    int charstotab;
     char *progname = argv[0];
     int opt;
     /* the output filename is initially 0 (a.k.a. stdout) */
@@ -102,7 +100,6 @@ int main(int argc, char * argv[]) {
     char *exts = 0;
 
     int output_format = HTML_FORMAT;
-    element parsed_input; 
 
     char *shortopts = "Vhx::o:t:";
     /* long options list */
@@ -201,22 +198,9 @@ int main(int argc, char * argv[]) {
    
     for (i=0; i <= lastinp; i++) {
         input = inputs[i];
-        charstotab = TABSTOP;
         while ((*curchar = fgetc(input)) != EOF) {
-            switch (*curchar) {
-            case '\t':
-                while (charstotab > 0)
-                   *curchar = ' ', curchar++, buflength++, charstotab--; 
-                break;
-            case '\n':
-                curchar++, buflength++, charstotab = TABSTOP;
-                break;
-            default:
-                curchar++, buflength++, charstotab--; 
-            }
-            if (charstotab == 0)
-                charstotab = 4;
-            if (buflength > maxlength - TABSTOP - 3) {
+            curchar++, buflength++;
+            if (buflength > maxlength - 1) {
                 maxlength += INCREMENT;
                 inputbuf = realloc(inputbuf, maxlength);
                 curchar = inputbuf + buflength;
@@ -230,15 +214,8 @@ int main(int argc, char * argv[]) {
         fclose(input);
     }
 
-    strcat(inputbuf, strdup("\n\n"));   /* add newlines to end to match Markdown.pl behavior */
-   
-    parsed_input = markdown(inputbuf, extensions);
-
-    print_element(parsed_input, stdout, output_format, extensions);
-
+    markdown_to_stream(inputbuf, extensions, output_format, stdout);
     printf("\n");
-
-    markdown_free(parsed_input);
     free(inputbuf);
 
     return(EXIT_SUCCESS);

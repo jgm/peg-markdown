@@ -2,14 +2,14 @@ ALL : markdown
 
 PROGRAM=markdown
 MYGETOPTDIR=my_getopt-1.5
-OBJS=$(MYGETOPTDIR)/my_getopt.o markdown_parser.o markdown_output.o
+OBJS=$(MYGETOPTDIR)/my_getopt.o bufopen.o markdown_parser.o markdown_output.o markdown_lib.o
 PEGDIR=peg-0.1.4
 LEG=$(PEGDIR)/leg
 
 $(LEG):
 	make -C $(PEGDIR)
 
-%.o : %.c markdown_peg.h
+%.o : %.c markdown_peg.h bufopen.h
 	$(CC) -c -o $@ $<
 
 markdown : markdown.c $(OBJS)
@@ -21,7 +21,7 @@ markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h
 .PHONY: clean test
 
 clean:
-	rm markdown_peg.c $(PROGRAM) $(OBJS); \
+	rm -f markdown_parser.c $(PROGRAM) $(OBJS); \
 	make -C $(PEGDIR) clean
 
 test: $(PROGRAM)
