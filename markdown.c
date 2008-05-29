@@ -234,7 +234,7 @@ int main(int argc, char * argv[]) {
    
     parsed_input = markdown(inputbuf, extensions);
 
-    print_element(parsed_input, output_format, extensions);
+    print_element(parsed_input, stdout, output_format, extensions);
 
     printf("\n");
 
