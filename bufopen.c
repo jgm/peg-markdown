@@ -18,6 +18,7 @@ typedef struct buffer BUFFER ;
 static int buffer_write(void *cookie, const char *data, int len) {
     int sz = len;
     BUFFER *buf = cookie;
+    char *pbuf;
 
     /* allocate a buffer capable of storing n+1 bytes. */
     while ((buf->len - buf->used) <= len) {
@@ -26,7 +27,7 @@ static int buffer_write(void *cookie, const char *data, int len) {
             return -1;
     }
 
-    char *pbuf = buf->ptr + buf->used;
+    pbuf = buf->ptr + buf->used;
 
     while (sz-- > 0)
         *pbuf++ = *data++;
@@ -75,4 +76,4 @@ FILE *bufopen(size_t len, char ** psave, size_t * plen) {
     return rv;
 }
 
-// vim: ts=4 sw=4
+/* vim:set ts=4 sw=4: */

@@ -22,7 +22,7 @@
 #include <assert.h>
 #include "markdown_peg.h"
 
-static extensions;
+static int extensions;
 
 static void print_html_string(char *str, bool obfuscate);
 static void print_html_element_list(element *list, bool obfuscate);
@@ -47,7 +47,7 @@ static int padded = 2;      /* Number of newlines after last output.
 static element *endnotes;   /* List of endnotes to print after main content. */
 static int notenumber = 0;  /* Number of footnote. */
 
-static FILE * stream = stdout;   /* Stream where output should be written */
+static FILE * stream = NULL;   /* Stream where output should be written */
 
 /* pad - add newlines if needed */
 static void pad(int num) {

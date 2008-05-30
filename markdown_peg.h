@@ -53,7 +53,7 @@ enum keys { LIST,   /* A generic list of values.  For ordered and bullet lists, 
             HTMLBLOCK,
             HRULE,
             REFERENCE,
-            NOTE,
+            NOTE
           };
 
 /* Semantic value of a parsing action. */

@@ -93,9 +93,9 @@ static void print_tree(element * elt, int indent) {
             default:                 key = "?";
         }
         if ( elt->key == STR ) {
-            fprintf(stderr, "0x%x: %s   '%s'\n", elt, key, elt->contents.str);
+            fprintf(stderr, "0x%x: %s   '%s'\n", (int)elt, key, elt->contents.str);
         } else {
-            fprintf(stderr, "0x%x: %s\n", elt, key);
+            fprintf(stderr, "0x%x: %s\n", (int)elt, key);
         }
         if (elt->children)
             print_tree(elt->children, indent + 4);
@@ -107,11 +107,12 @@ static void print_tree(element * elt, int indent) {
  * and write output to the specified stream. */
 int markdown_to_stream(char *text, int extensions, int output_format, FILE *stream) {
     element result;
+    char *formatted_text;
 
     if (stream == NULL)
         return -1;
 
-    char *formatted_text = preformat_text(text);
+    formatted_text = preformat_text(text);
     result = markdown(formatted_text, extensions);
     free(formatted_text);
 
@@ -142,4 +143,4 @@ char * markdown_to_string(char *text, int extensions, int output_format) {
 }
 
 
-// vim: ts=4 sw=4
+/* vim:set ts=4 sw=4: */
