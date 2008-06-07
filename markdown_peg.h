@@ -1,5 +1,6 @@
 /* markdown_peg.h */
 #include "markdown_lib.h"
+#include <glib.h>
 
 extern char *strdup(const char *string);
 
@@ -70,5 +71,5 @@ element *cons(element new, element *list);
 element *reverse(element *list);
 element markdown(char *string, int extensions);
 void markdown_free(element);
-void print_element(element elt, FILE * stream, int format, int extensions);
+void print_element(GString * out, element elt, int format, int extensions);
 

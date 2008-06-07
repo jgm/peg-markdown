@@ -9,20 +9,20 @@ modification and extension.
 It is pretty fast. A 179K text file that takes 5.7 seconds for
 Markdown.pl (v. 1.0.1) to parse takes only 0.2 seconds for this
 markdown.  It does, however, use a fair amount of memory.
+It also has quite a few memory leaks and should not be used in
+a long-running application.  (I hope to fix this problem; patches
+are welcome.)
 
 Installing
 ==========
 
-This program is written in portable ANSI C. For convenience, two
-required dependencies are included in the source directory:
+This program is written in portable ANSI C. It requires glib2:
+<http://library.gnome.org/devel/glib/>. Most *nix systems will have this
+installed already.
 
-  * bsittler's my_getopt option parsing library
-    (http://www.geocities.com/bsittler/)
-
-  * Ian Piumarta's peg/leg PEG parser generator
-    (http://piumarta.com/software/peg/)
-
-These will be built automatically.
+The other required dependency, Ian Piumarta's peg/leg PEG parser
+generator <http://piumarta.com/software/peg/>, is included in the source
+directory. It will be built automatically.
 
 To make the 'markdown' executable:
 

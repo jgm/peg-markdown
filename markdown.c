@@ -19,10 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <glib.h>
 #include "markdown_peg.h"
-#include "my_getopt-1.5/getopt.h"
 
-extern char *strdup(const char *string);
 static int extensions;
 
 /**********************************************************************
@@ -44,8 +43,6 @@ static int extensions;
                   "This is free software: you are free to change and redistribute it.\n" \
                   "There is NO WARRANTY, to the extent permitted by law."
 
-#define INCREMENT 4096  /* size of chunks in which to allocate memory */
-
 /* print version and copyright information */
 void version(char *progname)
 {
@@ -56,167 +53,122 @@ void version(char *progname)
          COPYRIGHT);
 }
 
-/* print a help summary */
-void help(char *progname)
-{
-  printf("Usage: %s [options] [FILE]...\n"
-         "Options:\n"
-         "-t FORMAT or --to FORMAT        convert to FORMAT (default is html)\n"
-         "                                FORMAT = html|latex|groff-mm\n"
-         "-o FILE or --output FILE        send output to FILE (default is stdout)\n"
-         "-x[EXTS] or --extensions [EXTS] use syntax extensions (all if EXTS not specified)\n"
-         "                                EXTS = smart, notes, ...\n"
-         "-V or --version                 print program version and exit\n"
-         "-h or --help                    show this message and exit\n",
-         progname);
-}
-
-/* print usage information to stderr */
-void usage(char *progname)
-{
-  fprintf(stderr,
-          "Summary: %s [--help] [--version] [options] [FILE]...\n",
-          progname);
-}
-
 int main(int argc, char * argv[]) {
 
     int numargs;            /* number of filename arguments */
     FILE *inputs[argc];     /* array of file pointers for inputs */
     int lastinp;            /* index of last file in inputs */
     int i;
-    size_t buflength = 0;
-    size_t maxlength = INCREMENT;
 
-    char *inputbuf;
+    GString *inputbuf;
 
     FILE *input;
-    char *curchar;
+    FILE *output;
+    char curchar;
     char *progname = argv[0];
-    int opt;
     /* the output filename is initially 0 (a.k.a. stdout) */
-    char *outfilename = 0;
-    char *format = 0;
-    char *exts = 0;
 
     int output_format = HTML_FORMAT;
 
-    char *shortopts = "Vhx::o:t:";
-    /* long options list */
-    struct option longopts[] =
+    static gboolean opt_version = FALSE;
+    static gchar *opt_output = 0;
+    static gchar *opt_to = 0;
+    static gboolean opt_smart = FALSE;
+    static gboolean opt_notes = FALSE;
+    static gboolean opt_allext = FALSE;
+
+    static GOptionEntry entries[] =
     {
-      /* name,        has_arg,           flag, val */ /* longind */
-      { "version",    no_argument,       0,    'V' }, /*       0 */
-      { "help",       no_argument,       0,    'h' }, /*       1 */
-      { "output",     required_argument, 0,    'o' }, /*       2 */
-      { "to",         required_argument, 0,    't' }, /*       3 */
-      { "extensions", optional_argument, 0,    'x' }, /*       3 */
-      /* end-of-list marker */
-      { 0, 0, 0, 0 }
+      { "version", 'v', 0, G_OPTION_ARG_NONE, &opt_version, "print version and exit", NULL },
+      { "output", 'o', 0, G_OPTION_ARG_STRING, &opt_output, "send output to FILE (default is stdout)", "FILE" },
+      { "to", 't', 0, G_OPTION_ARG_STRING, &opt_to, "convert to FORMAT (default is html)", "FORMAT" },
+      { "extensions", 'x', 0, G_OPTION_ARG_NONE, &opt_allext, "use all syntax extensions", NULL },
+      { NULL }
     };
-    /* long option list index */
-    int longind = 0;
-    
+
+    static GOptionEntry ext_entries[] =
+    {
+      { "smart", 0, 0, G_OPTION_ARG_NONE, &opt_smart, "use smart typography extension", NULL },
+      { "notes", 0, 0, G_OPTION_ARG_NONE, &opt_notes, "use notes extension", NULL },
+      { NULL }
+    };
+
+    GError *error = NULL;
+    GOptionContext *context;
+    GOptionGroup *ext_group;
+
+    context = g_option_context_new ("- convert markdown-formatted text");
+    g_option_context_add_main_entries (context, entries, NULL);
+    ext_group = g_option_group_new ("extensions", "Syntax extensions", "show available syntax extensions", NULL, NULL);
+    g_option_group_add_entries (ext_group, ext_entries);
+    g_option_context_add_group (context, ext_group);
+    g_option_context_set_description (context, "Converts text in specified files (or stdin) from markdown to FORMAT.\n"
+                                               "Available FORMATs:  html, latex, groff-mm");
+    if (!g_option_context_parse (context, &argc, &argv, &error)) {
+        g_print ("option parsing failed: %s\n", error->message);
+        exit (1);
+    }
+
+    if (opt_version) {
+        version(progname);
+        return EXIT_SUCCESS;
+    }
+
     extensions = 0;
+    if (opt_allext)
+        extensions = 0xFFFFFF;  /* turn on all extensions */
+    if (opt_smart)
+        extensions = extensions | EXT_SMART;
+    if (opt_notes)
+        extensions = extensions | EXT_NOTES;
 
-    /* parse all options from the command line */
-    while ((opt = getopt_long_only(argc, argv, shortopts, longopts, &longind)) != -1)
-        switch (opt) {
-        case 'V': /* -version */
-            version(progname);
-            return 0;
-        case 'h': /* -help */
-            help(progname);
-            return 0;
-        case 'x': /* -extended */
-            exts = optarg;
-            if (exts == NULL) {
-                extensions = 0xFFFFFF;  /* turn on all extensions */
-                break;
-            }
-            exts = strtok(optarg, ",");
-            while (exts != NULL) {
-                if (strcmp(exts, "smart") == 0)
-                    extensions = extensions | EXT_SMART;
-                else if (strcmp(exts, "notes") == 0)
-                    extensions = extensions | EXT_NOTES;
-                else {
-                    fprintf(stderr, "%s: Unknown extension '%s'\n", progname, exts);
-                    exit(EXIT_FAILURE);
-                }   
-                exts = strtok(NULL, ",");
-            }
-            break;
-        case 't': /* -to */
-            format = optarg;
-            if (strcmp(format, "html") == 0)
-                output_format = HTML_FORMAT;
-            else if (strcmp(format, "latex") == 0)
-                output_format = LATEX_FORMAT;
-            else if (strcmp(format, "groff-mm") == 0)
-                output_format = GROFF_MM_FORMAT;
-            else {
-                fprintf(stderr, "%s: Unknown output format '%s'\n", progname, format);
-                exit(EXIT_FAILURE);
-            }   
-            break;
-        case 'o': /* -output=FILE */
-            outfilename = optarg;
-            /* we allow "-" as a synonym for stdout here */
-            if (strcmp(optarg, "-") == 0)
-                outfilename = 0;
-            break;
-        default: /* something unexpected has happened */
-            usage(progname);
-            return 1;
-        }
+    if (opt_to == NULL)
+        output_format = HTML_FORMAT;
+    else if (strcmp(opt_to, "html") == 0)
+        output_format = HTML_FORMAT;
+    else if (strcmp(opt_to, "latex") == 0)
+        output_format = LATEX_FORMAT;
+    else if (strcmp(opt_to, "groff-mm") == 0)
+        output_format = GROFF_MM_FORMAT;
+    else {
+        fprintf(stderr, "%s: Unknown output format '%s'\n", progname, opt_to);
+        exit(EXIT_FAILURE);
+    }
 
-    /* re-open stdout to outfilename, if requested */
-    if (outfilename)
-        if (! freopen(outfilename, "w", stdout)) {
-            perror(outfilename);
-            return 1;
-        }
-
-    
-    numargs = argc - optind; 
+    /* we allow "-" as a synonym for stdout here */
+    if (opt_output == NULL || strcmp(opt_output, "-") == 0)
+        output = stdout;
+    else if (!(output = fopen(opt_output, "w"))) {
+        perror(opt_output);
+        return 1;
+    }
+        
+    numargs = argc - 1;
     if (numargs == 0) {        /* use stdin if no files specified */
        inputs[0] = stdin;
        lastinp = 0;
     }
     else {                  /* open all the files on command line */
        for (i = 0; i < numargs; i++)
-            if ((inputs[i] = fopen(argv[optind + i], "r")) == NULL) {
-                perror(argv[optind + i]);
+            if ((inputs[i] = fopen(argv[i+1], "r")) == NULL) {
+                perror(argv[i+1]);
                 exit(EXIT_FAILURE);
             }
        lastinp = i - 1;
     }
-    
-    inputbuf = malloc(INCREMENT);
-    curchar = inputbuf;
+
+    inputbuf = g_string_new("");
    
     for (i=0; i <= lastinp; i++) {
         input = inputs[i];
-        while ((*curchar = fgetc(input)) != EOF) {
-            curchar++, buflength++;
-            if (buflength > maxlength - 1) {
-                maxlength += INCREMENT;
-                inputbuf = realloc(inputbuf, maxlength);
-                curchar = inputbuf + buflength;
-                if (inputbuf == NULL) {
-                    perror(progname);
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-        *curchar = 0;  /* terminate string (other EOF character) */
+        while ((curchar = fgetc(input)) != EOF)
+            g_string_append_c(inputbuf, curchar);
         fclose(input);
     }
 
-    markdown_to_stream(inputbuf, extensions, output_format, stdout);
-    printf("\n");
-    free(inputbuf);
+    markdown_to_stream(inputbuf->str, extensions, output_format, output);
+    fprintf(output, "\n");
+    g_string_free(inputbuf, true);
 
     return(EXIT_SUCCESS);
 }

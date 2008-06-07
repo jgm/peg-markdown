@@ -1,51 +1,41 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "bufopen.h"
 #include "markdown_peg.h"
 
 #define TABSTOP 4
-#define INCREMENT 4096  /* size of chunks in which to allocate memory */
-
 
 /* preformat_text - allocate and copy text buffer while
  * performing tab expansion. */
 static char *preformat_text(char *text) {
-    char *buf, *p;
+    GString *buf;
+    char next_char;
     int charstotab;
 
     int len = 0;
-    int maxlen = INCREMENT;
 
-    buf = malloc(maxlen);
-    p = buf;
+    buf = g_string_new("");
 
     charstotab = TABSTOP;
-    while ((*p = *text++) != '\0') {
-        switch (*p) {
+    while ((next_char = *text++) != '\0') {
+        switch (next_char) {
         case '\t':
             while (charstotab > 0)
-                *p = ' ', p++, len++, charstotab--;
+                g_string_append_c(buf, ' '), len++, charstotab--;
             break;
         case '\n':
-            p++, len++, charstotab = TABSTOP;
+            g_string_append_c(buf, '\n'), len++, charstotab = TABSTOP;
             break;
         default:
-            p++, len++, charstotab--;
+            g_string_append_c(buf, next_char), len++, charstotab--;
         }
         if (charstotab == 0)
             charstotab = TABSTOP;
-        if (len > maxlen - TABSTOP - 4) {
-            maxlen += INCREMENT;
-            buf = realloc(buf, maxlen);
-            assert(buf != NULL);
-            p = buf + len;
-        }
     }
-    assert(*p == '\0');
-    strcat(p, "\n\n");
-    return buf;
+    g_string_append(buf, "\n\n");
+    return(buf->str);
 }
 
 
@@ -103,44 +93,44 @@ static void print_tree(element * elt, int indent) {
     }
 }
 
-/* markdown_to_stream = convert markdown text to the output format specified
- * and write output to the specified stream. */
-int markdown_to_stream(char *text, int extensions, int output_format, FILE *stream) {
+/* markdown_to_gstring = convert markdown text to the output format specified
+ * and return a GString. */
+GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     element result;
     char *formatted_text;
-
-    if (stream == NULL)
-        return -1;
+    GString *out;
+    out = g_string_new("");
 
     formatted_text = preformat_text(text);
     result = markdown(formatted_text, extensions);
+    
     free(formatted_text);
 
-    print_element(result, stream, output_format, extensions);
-    fflush(stream);
+    print_element(out, result, output_format, extensions);
 
     markdown_free(result);
-
-    return 0;
+    return out;
 }
 
 /* markdown_to_string = convert markdown text to the output format specified
- * and return a null terminated string. The value returned is allocated using
- * malloc and should be freed with free. */
+ * and return a null-terminated string. */
 char * markdown_to_string(char *text, int extensions, int output_format) {
-    FILE *stream;
-
-    /* buf and buflen are set _after_ fclose is called on stream */
-    char *buf = NULL;
-    size_t buflen = 0;
-    if ((stream = bufopen(0, &buf, &buflen)) == NULL)
-        return NULL;
-
-    markdown_to_stream(text, extensions, output_format, stream);
-    fclose(stream);
-
-    return buf;
+    GString *out;
+    char *char_out;
+    out = markdown_to_g_string(text, extensions, output_format);
+    char_out = strdup(out->str);
+    g_string_free(out, true);
+    return char_out;
 }
 
+/* markdown_to_stream = convert markdown text to the output format specified
+ * and write output to the specified stream. */
+int markdown_to_stream(char *text, int extensions, int output_format, FILE *stream) {
+    char *out;
+    out = markdown_to_string(text, extensions, output_format);
+    fprintf(stream, "%s", out);
+    free(out);
+    return 0;
+}
 
 /* vim:set ts=4 sw=4: */

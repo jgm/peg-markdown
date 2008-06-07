@@ -53,26 +53,14 @@ element *reverse(element *list) {
     return new;
 }
 
-/* length_of_strings - returns sum of length of strings in a list of STR elements */
-static int length_of_strings(element *list) {
-    int len = 0;
-    while (list != NULL) {
-        assert(list->key == STR);
-        assert(list->contents.str != NULL);
-        len += strlen(list->contents.str);
-        list = list->next;
-    }
-    return len;
-}
-
 /* concat_string_list - concatenates string contents of list of STR elements */
-static char *concat_string_list(element *list) {
-    char *result = malloc(length_of_strings(list) + 2); /* leave room for optional \n and \0  */
-    *result = '\0';
+static GString *concat_string_list(element *list) {
+    GString *result;
+    result = g_string_new("");
     while (list != NULL) {
         assert(list->key == STR);
         assert(list->contents.str != NULL);
-        result = strcat(result, list->contents.str);
+        g_string_append(result, list->contents.str);
         list = list->next;
     }
     return result;
@@ -87,7 +75,6 @@ static char *concat_string_list(element *list) {
 static char *charbuf = "";     /* Buffer of characters to be parsed. */
 static element *references;    /* List of link references found. */
 static element *notes;         /* List of footnotes found. */
-static int output_format;
 static element parse_result;   /* Results of parse. */
 static int syntax_extensions;  /* Syntax extensions selected. */
 
@@ -122,11 +109,11 @@ static element mk_str(char *string) {
  * reversed list of strings, adding optional extra newline */
 static element mk_str_from_list(element *list, bool extra_newline) {
     element result;
-    char *c = concat_string_list(reverse(list));
+    GString *c = concat_string_list(reverse(list));
     if (extra_newline)
-        strcat(c, "\n");  /* concate_string_list allocates extra byte for this */
+        g_string_append(c, "\n");
     result = mk_element(STR);
-    result.contents.str = c;
+    result.contents.str = c->str;
     return result;
 }
 
