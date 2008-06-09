@@ -299,6 +299,7 @@ BlockQuoteRaw =  a:StartList
                  )+
                  {   $$ = mk_str_from_list(a.children, true);
                      $$.key = RAW;
+                     markdown_free(a);
                  }
 
 NonblankIndentedLine = !BlankLine IndentedLine 
