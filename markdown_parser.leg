@@ -572,7 +572,7 @@ Inline  = Str
         | Symbol
 
 Space = Spacechar+ 
-        { $$.key = SPACE; $$.contents.str = strdup(" "); }
+        { $$ = mk_element(SPACE); $$.contents.str = strdup(" "); }
 
 Str =   < NormalChar+ > 
         { $$ = mk_str(yytext); }
@@ -587,13 +587,13 @@ Endline =   TerminalEndline | NormalEndline
 
 NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
                   !(Line ("===" '='* | "---" '-'*) Newline)
-                  { $$.key = SPACE; $$.contents.str = strdup("\n"); }
+                  { $$ = mk_element(SPACE); $$.contents.str = strdup("\n"); }
 
 TerminalEndline = Sp Newline Eof
-                  { $$.key = SPACE; $$.contents.str = strdup(""); }
+                  { $$ = mk_element(SPACE); $$.contents.str = strdup(""); }
 
 LineBreak = "  " Endline 
-            { $$.key = LINEBREAK; }
+            { $$ = mk_element(LINEBREAK); }
 
 Symbol =    < SpecialChar > 
             { $$ = mk_str(yytext); }
@@ -869,36 +869,46 @@ RawNoteBlock =  a:StartList
 
 %%
 
-/* free_element - free next and child elements recursively */
-static void free_element_tree(element * elt) {
+static void free_element_contents(element elt);
+
+/* free_element_list - free list of elements recursively */
+static void free_element_list(element * elt) {
     element * next = NULL;
     while (elt != NULL) {
         next = elt->next;
-        if (elt->children != NULL && elt->key != SPACE) {
-            free_element_tree(elt->children);
+        free_element_contents(*elt);
+        if (elt->children != NULL) {
+            free_element_list(elt->children);
             elt->children = NULL;
-        }
-        if (elt->key == STR || elt->key == RAW) {
-            free(elt->contents.str);
-            elt->contents.str = NULL;
         }
         free(elt);
         elt = next;
     }
 }
 
-/* free_element - free element recursively */
-void markdown_free(element result) {
-    if (result.children) {
-        free_element_tree(result.children);
-        result.children = NULL;
+/* free_element_contents - free element contents depending on type */
+static void free_element_contents(element elt) {
+    switch (elt.key) {
+      case STR: case SPACE: case RAW: case HTMLBLOCK: case HTML: case VERBATIM:
+        free(elt.contents.str);
+        elt.contents.str = NULL;
+        break;
+      case LINK: case IMAGE:
+        free(elt.contents.link.url);
+        elt.contents.link.url = NULL;
+        free(elt.contents.link.title);
+        elt.contents.link.title = NULL;
+        free_element_list(elt.contents.link.label);
+        break;
+      default:
+        ;
     }
-    if (result.next) {
-        free_element_tree(result.next);
-        result.next = NULL;
-    }
-    if (result.key == STR || result.key == RAW)
-        free(result.contents.str);
+}
+
+/* markdown_free - free element contents and children recursively */
+void markdown_free(element elt) {
+    free_element_list(elt.children);
+    free_element_contents(elt);
 }
 
 element markdown(char *string, int extensions) {
