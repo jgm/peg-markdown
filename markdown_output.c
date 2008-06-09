@@ -104,7 +104,7 @@ static void print_html_element_list(GString *out, element *list, bool obfuscate)
 static void print_html_element(GString *out, element elt, bool obfuscate) {
     int lev;
     char *contents;
-    element res;
+    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
@@ -192,12 +192,12 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
         res = markdown(contents, extensions);
-        print_html_element(out, res, obfuscate);
-        markdown_free(res);
+        print_html_element(out, *res, obfuscate);
+        markdown_free(*res);
         while ((contents = strtok(NULL, "\001"))) {
             res = markdown(contents, extensions);
-            print_html_element(out, res, obfuscate);
-            markdown_free(res);
+            print_html_element(out, *res, obfuscate);
+            markdown_free(*res);
         }
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
@@ -279,7 +279,7 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
         /* if contents.str == 0, then print note; else ignore, since this
          * is a note block that has been incorporated into the notes list */
         if (elt.contents.str == 0) {
-            endnotes = cons(elt, endnotes);
+            endnotes = cons(&elt, endnotes);
             ++notenumber;
             g_string_append_printf(out, "<a class=\"noteref\" id=\"fnref%d\" href=\"#fn%d\" title=\"Jump to note %d\">[%d]</a>",
                 notenumber, notenumber, notenumber, notenumber);
@@ -365,7 +365,7 @@ static void print_latex_element(GString *out, element elt) {
     int lev;
     int i;
     char *contents;
-    element res;
+    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
@@ -433,12 +433,12 @@ static void print_latex_element(GString *out, element elt) {
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
         res = markdown(contents, extensions);
-        print_latex_element(out, res);
-        markdown_free(res);
+        print_latex_element(out, *res);
+        markdown_free(*res);
         while ((contents = strtok(NULL, "\001"))) {
             res = markdown(contents, extensions);
-            print_latex_element(out, res);
-            markdown_free(res);
+            print_latex_element(out, *res);
+            markdown_free(*res);
         }
         break;
     case H1: case H2: case H3:
@@ -514,8 +514,8 @@ static void print_latex_element(GString *out, element elt) {
         g_string_append_printf(out, "\\begin{quote}");;;
         padded = 0;
         res = markdown(elt.contents.str, extensions);
-        print_latex_element(out, res);
-        markdown_free(res);
+        print_latex_element(out, *res);
+        markdown_free(*res);
         g_string_append_printf(out, "\\end{quote}");;;
         padded = 0;
         break;
@@ -575,7 +575,7 @@ static void print_groff_mm_element_list(GString *out, element *list) {
 static void print_groff_mm_element(GString *out, element elt, int count) {
     int lev;
     char *contents;
-    element res;
+    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
@@ -655,12 +655,12 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
          * each chunk separately. */
         contents = strtok(elt.contents.str, "\001");
         res = markdown(contents, extensions);
-        print_groff_mm_element(out, res, count);
-        markdown_free(res);
+        print_groff_mm_element(out, *res, count);
+        markdown_free(*res);
         while ((contents = strtok(NULL, "\001"))) {
             res = markdown(contents, extensions);
-            print_groff_mm_element(out, res, count);
-            markdown_free(res);
+            print_groff_mm_element(out, *res, count);
+            markdown_free(*res);
         }
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
@@ -729,8 +729,8 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         g_string_append_printf(out, ".DS I\n");;;
         padded = 2;
         res = markdown(elt.contents.str, extensions);
-        print_groff_mm_element(out, res, 1);
-        markdown_free(res);
+        print_groff_mm_element(out, *res, 1);
+        markdown_free(*res);
         pad(out, 1);
         g_string_append_printf(out, ".DE");;;
         padded = 0;

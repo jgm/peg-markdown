@@ -67,9 +67,9 @@ struct Element {
 
 typedef struct Element element;
 
-element *cons(element new, element *list);
+element *cons(element *new, element *list);
 element *reverse(element *list);
-element markdown(char *string, int extensions);
+element *markdown(char *string, int extensions);
 void markdown_free(element);
 void print_element(GString * out, element elt, int format, int extensions);
 

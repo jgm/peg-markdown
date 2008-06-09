@@ -96,7 +96,7 @@ static void print_tree(element * elt, int indent) {
 /* markdown_to_gstring = convert markdown text to the output format specified
  * and return a GString. */
 GString * markdown_to_g_string(char *text, int extensions, int output_format) {
-    element result;
+    element *result;
     char *formatted_text;
     GString *out;
     out = g_string_new("");
@@ -106,9 +106,9 @@ GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     
     free(formatted_text);
 
-    print_element(out, result, output_format, extensions);
+    print_element(out, *result, output_format, extensions);
 
-    markdown_free(result);
+    markdown_free(*result);
     return out;
 }
 
