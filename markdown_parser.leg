@@ -19,6 +19,8 @@
 #include <assert.h>
 #include "markdown_peg.h"
 
+/* #define __DEBUG__ 1 */
+
 extern int strcasecmp(const char *string1, const char *string2);
 int yyparse(void);
 
@@ -89,7 +91,9 @@ static int syntax_extensions;  /* Syntax extensions selected. */
 /* mk_element - generic constructor for element */
 static element * mk_element(int key) {
     element *result = malloc(sizeof(element));
-/* fprintf(stderr,"Allocated element for %d\n", key); */
+    #ifdef __DEBUG__
+      fprintf(stderr,"Allocated element for %d\n", key);
+    #endif
     result->key = key;
     result->children = NULL;
     result->next = NULL;
@@ -222,7 +226,9 @@ static bool find_note(element **result, char *label) {
  ***********************************************************************/
 
 # define YYSTYPE element *
-/* # define YY_DEBUG 1 */
+#ifdef __DEBUG__
+# define YY_DEBUG 1
+#endif
 
 #define YY_INPUT(buf, result, max_size)              \
 {                                                    \
@@ -294,7 +300,7 @@ BlockQuote = a:BlockQuoteRaw
 BlockQuoteRaw =  a:StartList
                  (( '>' ' '? Line { pushelt($$, a); } )
                   ( !'>' !BlankLine Line { pushelt($$, a); } )*
-                  ( BlankLine { pushelt($$, a); } )*
+                  ( BlankLine { pushelt(mk_str("\n"), a); } )*
                  )+
                  {   $$ = mk_str_from_list(a->children, true);
                      $$->key = RAW;
@@ -303,7 +309,7 @@ BlockQuoteRaw =  a:StartList
 NonblankIndentedLine = !BlankLine IndentedLine
 
 VerbatimChunk = a:StartList
-                ( BlankLine { pushelt($$, a); } )*
+                ( BlankLine { pushelt(mk_str("\n"), a); } )*
                 ( NonblankIndentedLine { pushelt($$, a); } )+
                 { $$ = mk_str_from_list(a->children, false); }
 
@@ -316,7 +322,7 @@ HorizontalRule = NonindentSpace
                  | '-' Sp '-' Sp '-' (Sp '-')*
                  | '_' Sp '_' Sp '_' (Sp '_')*)
                  Sp Newline BlankLine+
-                 { $$->key = HRULE; }
+                 { $$ = mk_element(HRULE); }
 
 Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
 
@@ -738,7 +744,6 @@ RawHtml =   < (HtmlComment | HtmlTag) >
             { $$ = mk_str(yytext); $$->key = HTML; }
 
 BlankLine =     Sp Newline
-                { $$ = mk_str("\n"); }
 
 Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
 HtmlAttribute = (Alphanumeric | '-')+ Spnl ('=' Spnl (Quoted | Nonspacechar+))? Spnl
@@ -881,7 +886,9 @@ void free_element_list(element * elt) {
             free_element_list(elt->children);
             elt->children = NULL;
         }
-/* fprintf(stderr,"Freed element for %d\n", elt->key); */
+        #ifdef __DEBUG__
+          fprintf(stderr,"Freed element for %d\n", elt->key);
+        #endif
         free(elt);
         elt = next;
     }
