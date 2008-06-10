@@ -67,16 +67,16 @@ static void print_html_string(GString *out, char *str, bool obfuscate) {
     while (*str != '\0') {
         switch (*str) {
         case '&':
-            g_string_append_printf(out, "&amp;");;;
+            g_string_append_printf(out, "&amp;");
             break;
         case '<':
-            g_string_append_printf(out, "&lt;");;;
+            g_string_append_printf(out, "&lt;");
             break;
         case '>':
-            g_string_append_printf(out, "&gt;");;;
+            g_string_append_printf(out, "&gt;");
             break;
         case '"':
-            g_string_append_printf(out, "&quot;");;;
+            g_string_append_printf(out, "&quot;");
             break;
         default:
             if (obfuscate) {
@@ -103,44 +103,42 @@ static void print_html_element_list(GString *out, element *list, bool obfuscate)
 /* print_html_element - print an element as HTML */
 static void print_html_element(GString *out, element elt, bool obfuscate) {
     int lev;
-    char *contents;
-    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
         break;
     case LINEBREAK:
-        g_string_append_printf(out, "<br/>");;;
+        g_string_append_printf(out, "<br/>");
         break;
     case STR:
         print_html_string(out, elt.contents.str, obfuscate);
         break;
     case ELLIPSIS:
-        g_string_append_printf(out, "&hellip;");;;
+        g_string_append_printf(out, "&hellip;");
         break;
     case EMDASH:
-        g_string_append_printf(out, "&mdash;");;;
+        g_string_append_printf(out, "&mdash;");
         break;
     case ENDASH:
-        g_string_append_printf(out, "&ndash;");;;
+        g_string_append_printf(out, "&ndash;");
         break;
     case APOSTROPHE:
-        g_string_append_printf(out, "&rsquo;");;;
+        g_string_append_printf(out, "&rsquo;");
         break;
     case SINGLEQUOTED:
-        g_string_append_printf(out, "&lsquo;");;;
+        g_string_append_printf(out, "&lsquo;");
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "&rsquo;");;;
+        g_string_append_printf(out, "&rsquo;");
         break;
     case DOUBLEQUOTED:
-        g_string_append_printf(out, "&ldquo;");;;
+        g_string_append_printf(out, "&ldquo;");
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "&rdquo;");;;
+        g_string_append_printf(out, "&rdquo;");
         break;
     case CODE:
-        g_string_append_printf(out, "<code>");;;
+        g_string_append_printf(out, "<code>");
         print_html_string(out, elt.contents.str, obfuscate);
-        g_string_append_printf(out, "</code>");;;
+        g_string_append_printf(out, "</code>");
         break;
     case HTML:
         g_string_append_printf(out, "%s", elt.contents.str);
@@ -156,9 +154,9 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
             print_html_string(out, elt.contents.link.title, obfuscate);
             g_string_append_printf(out, "\"");
         }
-        g_string_append_printf(out, ">");;;
+        g_string_append_printf(out, ">");
         print_html_element_list(out, elt.contents.link.label, obfuscate);
-        g_string_append_printf(out, "</a>");;;
+        g_string_append_printf(out, "</a>");
         break;
     case IMAGE:
         g_string_append_printf(out, "<img src=\"");
@@ -171,34 +169,24 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
             print_html_string(out, elt.contents.link.title, obfuscate);
             g_string_append_printf(out, "\"");
         }
-        g_string_append_printf(out, " />");;;
+        g_string_append_printf(out, " />");
         break;
     case EMPH:
-        g_string_append_printf(out, "<em>");;;
+        g_string_append_printf(out, "<em>");
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "</em>");;;
+        g_string_append_printf(out, "</em>");
         break;
     case STRONG:
-        g_string_append_printf(out, "<strong>");;;
+        g_string_append_printf(out, "<strong>");
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "</strong>");;;
+        g_string_append_printf(out, "</strong>");
         break;
     case LIST:
         print_html_element_list(out, elt.children, obfuscate);
         break;
     case RAW:
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
-        res = markdown(contents, extensions);
-        print_html_element(out, *res, obfuscate);
-        markdown_free(*res);
-        while ((contents = strtok(NULL, "\001"))) {
-            res = markdown(contents, extensions);
-            print_html_element(out, *res, obfuscate);
-            markdown_free(*res);
-        }
+        /* Shouldn't occur - these are handled by process_raw_blocks() */
+        assert(elt.key != RAW);
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
@@ -215,14 +203,14 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
         break;
     case PARA:
         pad(out, 2);
-        g_string_append_printf(out, "<p>");;;
+        g_string_append_printf(out, "<p>");
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "</p>");;;
+        g_string_append_printf(out, "</p>");
         padded = 0;
         break;
     case HRULE:
         pad(out, 2);
-        g_string_append_printf(out, "<hr />");;;
+        g_string_append_printf(out, "<hr />");
         padded = 0;
         break;
     case HTMLBLOCK:
@@ -252,24 +240,24 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
         padded = 0;
         print_html_element_list(out, elt.children, obfuscate);
         pad(out, 1);
-        g_string_append_printf(out, "</ol>");;;
+        g_string_append_printf(out, "</ol>");
         padded = 0;
         break;
     case LISTITEM:
         pad(out, 1);
-        g_string_append_printf(out, "<li>");;;
+        g_string_append_printf(out, "<li>");
         padded = 2;
         print_html_element_list(out, elt.children, obfuscate);
-        g_string_append_printf(out, "</li>");;;
+        g_string_append_printf(out, "</li>");
         padded = 0;
         break;
     case BLOCKQUOTE:
         pad(out, 2);
-        g_string_append_printf(out, "<blockquote>\n");;;
+        g_string_append_printf(out, "<blockquote>\n");
         padded = 2;
         print_html_element_list(out, elt.children, obfuscate);
         pad(out, 1);
-        g_string_append_printf(out, "</blockquote>");;;
+        g_string_append_printf(out, "</blockquote>");
         padded = 0;
         break;
     case REFERENCE:
@@ -310,7 +298,7 @@ static void print_html_endnotes(GString *out) {
         endnotes = endnotes->next;
     }
     pad(out, 1);
-    g_string_append_printf(out, "</ol>");;;
+    g_string_append_printf(out, "</ol>");
 }
 
 /**********************************************************************
@@ -328,22 +316,22 @@ static void print_latex_string(GString *out, char *str) {
             g_string_append_printf(out, "\\%c", *str);
             break;
         case '^':
-            g_string_append_printf(out, "\\^{}");;;
+            g_string_append_printf(out, "\\^{}");
             break;
         case '\\':
-            g_string_append_printf(out, "\\textbackslash{}");;;
+            g_string_append_printf(out, "\\textbackslash{}");
             break;
         case '~':
-            g_string_append_printf(out, "\\ensuremath{\\sim}");;;
+            g_string_append_printf(out, "\\ensuremath{\\sim}");
             break;
         case '|':
-            g_string_append_printf(out, "\\textbar{}");;;
+            g_string_append_printf(out, "\\textbar{}");
             break;
         case '<':
-            g_string_append_printf(out, "\\textless{}");;;
+            g_string_append_printf(out, "\\textless{}");
             break;
         case '>':
-            g_string_append_printf(out, "\\textgreater{}");;;
+            g_string_append_printf(out, "\\textgreater{}");
             break;
         default:
             g_string_append_c(out, *str);
@@ -364,44 +352,42 @@ static void print_latex_element_list(GString *out, element *list) {
 static void print_latex_element(GString *out, element elt) {
     int lev;
     int i;
-    char *contents;
-    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
         break;
     case LINEBREAK:
-        g_string_append_printf(out, "\\\\\n");;;
+        g_string_append_printf(out, "\\\\\n");
         break;
     case STR:
         print_latex_string(out, elt.contents.str);
         break;
     case ELLIPSIS:
-        g_string_append_printf(out, "\\ldots{}");;;
+        g_string_append_printf(out, "\\ldots{}");
         break;
     case EMDASH: 
-        g_string_append_printf(out, "---");;;
+        g_string_append_printf(out, "---");
         break;
     case ENDASH: 
-        g_string_append_printf(out, "--");;;
+        g_string_append_printf(out, "--");
         break;
     case APOSTROPHE:
-        g_string_append_printf(out, "'");;;
+        g_string_append_printf(out, "'");
         break;
     case SINGLEQUOTED:
-        g_string_append_printf(out, "`");;;
+        g_string_append_printf(out, "`");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "'");;;
+        g_string_append_printf(out, "'");
         break;
     case DOUBLEQUOTED:
-        g_string_append_printf(out, "``");;;
+        g_string_append_printf(out, "``");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "''");;;
+        g_string_append_printf(out, "''");
         break;
     case CODE:
-        g_string_append_printf(out, "\\texttt{");;;
+        g_string_append_printf(out, "\\texttt{");
         print_latex_string(out, elt.contents.str);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         break;
     case HTML:
         /* don't print HTML */
@@ -409,54 +395,44 @@ static void print_latex_element(GString *out, element elt) {
     case LINK:
         g_string_append_printf(out, "\\href{%s}{", elt.contents.link.url);
         print_latex_element_list(out, elt.contents.link.label);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         break;
     case IMAGE:
         g_string_append_printf(out, "\\includegraphics{%s}", elt.contents.link.url);
         break;
     case EMPH:
-        g_string_append_printf(out, "\\emph{");;;
+        g_string_append_printf(out, "\\emph{");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         break;
     case STRONG:
-        g_string_append_printf(out, "\\textbf{");;;
+        g_string_append_printf(out, "\\textbf{");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         break;
     case LIST:
         print_latex_element_list(out, elt.children);
         break;
     case RAW:
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
-        res = markdown(contents, extensions);
-        print_latex_element(out, *res);
-        markdown_free(*res);
-        while ((contents = strtok(NULL, "\001"))) {
-            res = markdown(contents, extensions);
-            print_latex_element(out, *res);
-            markdown_free(*res);
-        }
+        /* Shouldn't occur - these are handled by process_raw_blocks() */
+        assert(elt.key != RAW);
         break;
     case H1: case H2: case H3:
         pad(out, 2);
         lev = elt.key - H1 + 1;  /* assumes H1 ... H6 are in order */
-        g_string_append_printf(out, "\\");;;
+        g_string_append_printf(out, "\\");
         for (i = elt.key; i > H1; i--)
-            g_string_append_printf(out, "sub");;;
-        g_string_append_printf(out, "section{");;;
+            g_string_append_printf(out, "sub");
+        g_string_append_printf(out, "section{");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         padded = 0;
         break;
     case H4: case H5: case H6:
         pad(out, 2);
-        g_string_append_printf(out, "\\noindent\\textbf{");;;
+        g_string_append_printf(out, "\\noindent\\textbf{");
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "}");;;
+        g_string_append_printf(out, "}");
         padded = 0;
         break;
     case PLAIN:
@@ -471,7 +447,7 @@ static void print_latex_element(GString *out, element elt) {
         break;
     case HRULE:
         pad(out, 2);
-        g_string_append_printf(out, "\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");;;
+        g_string_append_printf(out, "\\begin{center}\\rule{3in}{0.4pt}\\end{center}\n");
         padded = 0;
         break;
     case HTMLBLOCK:
@@ -479,54 +455,53 @@ static void print_latex_element(GString *out, element elt) {
         break;
     case VERBATIM:
         pad(out, 1);
-        g_string_append_printf(out, "\\begin{verbatim}\n");;;
+        g_string_append_printf(out, "\\begin{verbatim}\n");
         print_latex_string(out, elt.contents.str);
-        g_string_append_printf(out, "\n\\end{verbatim}");;;
+        g_string_append_printf(out, "\n\\end{verbatim}");
         padded = 0;
         break;
     case BULLETLIST:
         pad(out, 1);
-        g_string_append_printf(out, "\\begin{itemize}");;;
+        g_string_append_printf(out, "\\begin{itemize}");
         padded = 0;
         print_latex_element_list(out, elt.children);
         pad(out, 1);
-        g_string_append_printf(out, "\\end{itemize}");;;
+        g_string_append_printf(out, "\\end{itemize}");
         padded = 0;
         break;
     case ORDEREDLIST:
         pad(out, 1);
-        g_string_append_printf(out, "\\begin{enumerate}");;;
+        g_string_append_printf(out, "\\begin{enumerate}");
         padded = 0;
         print_latex_element_list(out, elt.children);
         pad(out, 1);
-        g_string_append_printf(out, "\\end{enumerate}");;;
+        g_string_append_printf(out, "\\end{enumerate}");
         padded = 0;
         break;
     case LISTITEM:
         pad(out, 1);
-        g_string_append_printf(out, "\\item ");;;
+        g_string_append_printf(out, "\\item ");
         padded = 2;
         print_latex_element_list(out, elt.children);
-        g_string_append_printf(out, "\n");;;
+        g_string_append_printf(out, "\n");
         break;
     case BLOCKQUOTE:
         pad(out, 1);
-        g_string_append_printf(out, "\\begin{quote}");;;
+        g_string_append_printf(out, "\\begin{quote}");
         padded = 0;
-        res = markdown(elt.contents.str, extensions);
-        print_latex_element(out, *res);
-        markdown_free(*res);
-        g_string_append_printf(out, "\\end{quote}");;;
+        print_latex_element_list(out, elt.children);
+        pad(out, 1);
+        g_string_append_printf(out, "\\end{quote}");
         padded = 0;
         break;
     case NOTE:
         /* if contents.str == 0, then print note; else ignore, since this
          * is a note block that has been incorporated into the notes list */
         if (elt.contents.str == 0) {
-            g_string_append_printf(out, "\\footnote{");;;
+            g_string_append_printf(out, "\\footnote{");
             padded = 2;
             print_latex_element_list(out, elt.children);
-            g_string_append_printf(out, "}");;;
+            g_string_append_printf(out, "}");
             padded = 0; 
         }
         break;
@@ -552,7 +527,7 @@ static void print_groff_string(GString *out, char *str) {
     while (*str != '\0') {
         switch (*str) {
         case '\\':
-            g_string_append_printf(out, "\\e");;;
+            g_string_append_printf(out, "\\e");
             break;
         default:
             g_string_append_c(out, *str);
@@ -574,8 +549,6 @@ static void print_groff_mm_element_list(GString *out, element *list) {
 /* print_groff_mm_element - print an element as groff ms */
 static void print_groff_mm_element(GString *out, element elt, int count) {
     int lev;
-    char *contents;
-    element *res;
     switch (elt.key) {
     case SPACE:
         g_string_append_printf(out, "%s", elt.contents.str);
@@ -583,7 +556,7 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         break;
     case LINEBREAK:
         pad(out, 1);
-        g_string_append_printf(out, ".br");;;
+        g_string_append_printf(out, ".br");
         padded = 0;
         break;
     case STR:
@@ -591,31 +564,31 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         padded = 0;
         break;
     case ELLIPSIS:
-        g_string_append_printf(out, "...");;;
+        g_string_append_printf(out, "...");
         break;
     case EMDASH:
-        g_string_append_printf(out, "\\[em]");;;
+        g_string_append_printf(out, "\\[em]");
         break;
     case ENDASH:
-        g_string_append_printf(out, "\\[en]");;;
+        g_string_append_printf(out, "\\[en]");
         break;
     case APOSTROPHE:
-        g_string_append_printf(out, "'");;;
+        g_string_append_printf(out, "'");
         break;
     case SINGLEQUOTED:
-        g_string_append_printf(out, "`");;;
+        g_string_append_printf(out, "`");
         print_groff_mm_element_list(out, elt.children);
-        g_string_append_printf(out, "'");;;
+        g_string_append_printf(out, "'");
         break;
     case DOUBLEQUOTED:
-        g_string_append_printf(out, "\\[lq]");;;
+        g_string_append_printf(out, "\\[lq]");
         print_groff_mm_element_list(out, elt.children);
-        g_string_append_printf(out, "\\[rq]");;;
+        g_string_append_printf(out, "\\[rq]");
         break;
     case CODE:
-        g_string_append_printf(out, "\\fC");;;
+        g_string_append_printf(out, "\\fC");
         print_groff_string(out, elt.contents.str);
-        g_string_append_printf(out, "\\fR");;;
+        g_string_append_printf(out, "\\fR");
         padded = 0;
         break;
     case HTML:
@@ -627,22 +600,22 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         padded = 0;
         break;
     case IMAGE:
-        g_string_append_printf(out, "[IMAGE: ");;;
+        g_string_append_printf(out, "[IMAGE: ");
         print_groff_mm_element_list(out, elt.contents.link.label);
-        g_string_append_printf(out, "]");;;
+        g_string_append_printf(out, "]");
         padded = 0;
         /* not supported */
         break;
     case EMPH:
-        g_string_append_printf(out, "\\fI");;;
+        g_string_append_printf(out, "\\fI");
         print_groff_mm_element_list(out, elt.children);
-        g_string_append_printf(out, "\\fR");;;
+        g_string_append_printf(out, "\\fR");
         padded = 0;
         break;
     case STRONG:
-        g_string_append_printf(out, "\\fB");;;
+        g_string_append_printf(out, "\\fB");
         print_groff_mm_element_list(out, elt.children);
-        g_string_append_printf(out, "\\fR");;;
+        g_string_append_printf(out, "\\fR");
         padded = 0;
         break;
     case LIST:
@@ -650,18 +623,8 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         padded = 0;
         break;
     case RAW:
-        /* \001 is used to indicate boundaries between nested lists when there
-         * is no blank line.  We split the string by \001 and parse
-         * each chunk separately. */
-        contents = strtok(elt.contents.str, "\001");
-        res = markdown(contents, extensions);
-        print_groff_mm_element(out, *res, count);
-        markdown_free(*res);
-        while ((contents = strtok(NULL, "\001"))) {
-            res = markdown(contents, extensions);
-            print_groff_mm_element(out, *res, count);
-            markdown_free(*res);
-        }
+        /* Shouldn't occur - these are handled by process_raw_blocks() */
+        assert(elt.key != RAW);
         break;
     case H1: case H2: case H3: case H4: case H5: case H6:
         lev = elt.key - H1 + 1;
@@ -679,13 +642,13 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
     case PARA:
         pad(out, 1);
         if (!in_list_item || count != 1)
-            g_string_append_printf(out, ".P\n");;;
+            g_string_append_printf(out, ".P\n");
         print_groff_mm_element_list(out, elt.children);
         padded = 0;
         break;
     case HRULE:
         pad(out, 1);
-        g_string_append_printf(out, "\\l'\\n(.lu*8u/10u'");;;
+        g_string_append_printf(out, "\\l'\\n(.lu*8u/10u'");
         padded = 0;
         break;
     case HTMLBLOCK:
@@ -693,32 +656,32 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         break;
     case VERBATIM:
         pad(out, 1);
-        g_string_append_printf(out, ".VERBON 2\n");;;
+        g_string_append_printf(out, ".VERBON 2\n");
         print_groff_string(out, elt.contents.str);
-        g_string_append_printf(out, ".VERBOFF");;;
+        g_string_append_printf(out, ".VERBOFF");
         padded = 0;
         break;
     case BULLETLIST:
         pad(out, 1);
-        g_string_append_printf(out, ".BL");;;
+        g_string_append_printf(out, ".BL");
         padded = 0;
         print_groff_mm_element_list(out, elt.children);
         pad(out, 1);
-        g_string_append_printf(out, ".LE 1");;;
+        g_string_append_printf(out, ".LE 1");
         padded = 0;
         break;
     case ORDEREDLIST:
         pad(out, 1);
-        g_string_append_printf(out, ".AL");;;
+        g_string_append_printf(out, ".AL");
         padded = 0;
         print_groff_mm_element_list(out, elt.children);
         pad(out, 1);
-        g_string_append_printf(out, ".LE 1");;;
+        g_string_append_printf(out, ".LE 1");
         padded = 0;
         break;
     case LISTITEM:
         pad(out, 1);
-        g_string_append_printf(out, ".LI\n");;;
+        g_string_append_printf(out, ".LI\n");
         in_list_item = true;
         padded = 2;
         print_groff_mm_element_list(out, elt.children);
@@ -726,25 +689,23 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         break;
     case BLOCKQUOTE:
         pad(out, 1);
-        g_string_append_printf(out, ".DS I\n");;;
+        g_string_append_printf(out, ".DS I\n");
         padded = 2;
-        res = markdown(elt.contents.str, extensions);
-        print_groff_mm_element(out, *res, 1);
-        markdown_free(*res);
+        print_groff_mm_element_list(out, elt.children);
         pad(out, 1);
-        g_string_append_printf(out, ".DE");;;
+        g_string_append_printf(out, ".DE");
         padded = 0;
         break;
     case NOTE:
         /* if contents.str == 0, then print note; else ignore, since this
          * is a note block that has been incorporated into the notes list */
         if (elt.contents.str == 0) {
-            g_string_append_printf(out, "\\*F\n");;;
-            g_string_append_printf(out, ".FS\n");;;
+            g_string_append_printf(out, "\\*F\n");
+            g_string_append_printf(out, ".FS\n");
             padded = 2;
             print_groff_mm_element_list(out, elt.children);
             pad(out, 1);
-            g_string_append_printf(out, ".FE\n");;;
+            g_string_append_printf(out, ".FE\n");
             padded = 1; 
         }
         break;

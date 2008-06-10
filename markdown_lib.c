@@ -93,23 +93,62 @@ static void print_tree(element * elt, int indent) {
     }
 }
 
+static element * process_raw_blocks(element *input, int extensions, element *references, element *notes);
+
 /* markdown_to_gstring = convert markdown text to the output format specified
  * and return a GString. */
 GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     element *result;
+    element *references;
+    element *notes;
     char *formatted_text;
     GString *out;
     out = g_string_new("");
 
     formatted_text = preformat_text(text);
-    result = markdown(formatted_text, extensions);
-    
+
+    references = parse_references(formatted_text, extensions);
+    notes = parse_notes(formatted_text, extensions, references);
+    result = parse_markdown(formatted_text, extensions, references, notes);
+    result = process_raw_blocks(result, extensions, references, notes);
+
     free(formatted_text);
 
     print_element(out, *result, output_format, extensions);
 
-    markdown_free(*result);
+    free_element_list(result);
+    free_element_list(references);
+    free_element_list(notes);
     return out;
+}
+
+static element * process_raw_blocks(element *input, int extensions, element *references, element *notes) {
+    element *current = NULL;
+    element *last_child = NULL;
+    char *contents;
+    current = input;
+
+    while (current != NULL) {
+        if (current->key == RAW) {
+            /* \001 is used to indicate boundaries between nested lists when there
+             * is no blank line.  We split the string by \001 and parse
+             * each chunk separately. */
+            contents = strtok(current->contents.str, "\001");
+            current->key = LIST;
+            current->children = parse_markdown(contents, extensions, references, notes);
+            free(current->contents.str);
+            current->contents.str = NULL;
+            last_child = current->children;
+            while ((contents = strtok(NULL, "\001"))) {
+                last_child->next = parse_markdown(contents, extensions, references, notes);
+                last_child = last_child->next;
+            }
+        }
+        if (current->children != NULL)
+            current->children = process_raw_blocks(current->children, extensions, references, notes);
+        current = current->next;
+    }
+    return input;
 }
 
 /* markdown_to_string = convert markdown text to the output format specified

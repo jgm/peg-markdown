@@ -1,7 +1,7 @@
 %{
 /**********************************************************************
 
-  markdown_parser.leg - markdown parser in C using a PEG grammar. 
+  markdown_parser.leg - markdown parser in C using a PEG grammar.
   (c) 2008 John MacFarlane (jgm at berkeley dot edu).
 
   This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ int yyparse(void);
 
 /**********************************************************************
 
-  List manipulation functions 
+  List manipulation functions
 
  ***********************************************************************/
 
@@ -89,6 +89,7 @@ static int syntax_extensions;  /* Syntax extensions selected. */
 /* mk_element - generic constructor for element */
 static element * mk_element(int key) {
     element *result = malloc(sizeof(element));
+/* fprintf(stderr,"Allocated element for %d\n", key); */
     result->key = key;
     result->children = NULL;
     result->next = NULL;
@@ -118,7 +119,7 @@ static element * mk_str_from_list(element *list, bool extra_newline) {
 }
 
 /* mk_list - constructs an element with key 'key' and children from 'lst' (reversed).
- * This is designed to be used with pushelt to build lists in a parser action. 
+ * This is designed to be used with pushelt to build lists in a parser action.
  * The reversing is necessary because pushelt adds to the head of a list. */
 static element * mk_list(int key, element *lst) {
     element *result;
@@ -169,7 +170,7 @@ static bool match_inlines(element *l1, element *l2) {
         case IMAGE:
             return false;  /* No links or images within links */
         default:
-            fprintf(stderr, "match_inlines encountered unknown key = %d\n", l1->key); 
+            fprintf(stderr, "match_inlines encountered unknown key = %d\n", l1->key);
             exit(EXIT_FAILURE);
             break;
         }
@@ -189,8 +190,8 @@ static bool find_reference(link *result, element *label) {
         if (match_inlines(label, curitem.label)) {
             *result = curitem;
             return true;
-        } 
-        else 
+        }
+        else
             cur = cur->next;
     }
     return false;
@@ -205,8 +206,8 @@ static bool find_note(element **result, char *label) {
        if (strcmp(label, cur->contents.str) == 0) {
            *result = cur;
            return true;
-       } 
-       else 
+       }
+       else
            cur = cur->next;
    }
    return false;
@@ -221,6 +222,7 @@ static bool find_note(element **result, char *label) {
  ***********************************************************************/
 
 # define YYSTYPE element *
+/* # define YY_DEBUG 1 */
 
 #define YY_INPUT(buf, result, max_size)              \
 {                                                    \
@@ -241,26 +243,26 @@ static bool find_note(element **result, char *label) {
 
 %}
 
-Doc =       a:Blocks BlankLine* Eof 
+Doc =       a:Blocks BlankLine* Eof
             { parse_result = a; }
 
 Blocks =    a:StartList ( Block { pushelt($$, a); } )*
             { $$ = mk_list(LIST, a); }
 
 Block =     BlankLine*
-            ( BlockQuote 
+            ( BlockQuote
             | Verbatim
             | Note
-            | Reference 
-            | Heading 
-            | OrderedList 
-            | BulletList 
-            | HorizontalRule 
-            | HtmlBlock 
-            | Para 
+            | Reference
+            | Heading
+            | OrderedList
+            | BulletList
+            | HorizontalRule
+            | HtmlBlock
+            | Para
             | Plain )
 
-Para =      NonindentSpace a:Inlines BlankLine+ 
+Para =      NonindentSpace a:Inlines BlankLine+
             { $$ = a; $$->key = PARA; }
 
 Plain =     a:Inlines
@@ -268,9 +270,9 @@ Plain =     a:Inlines
 
 AtxInline = !Newline !(Sp '#'* Sp Newline) Inline
 
-AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) > 
+AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
- 
+
 AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { pushelt($$, a); } )+ (Sp '#'* Sp)?  Newline
             { $$ = mk_list(s->key, a); }
 
@@ -287,7 +289,7 @@ Heading = AtxHeading | SetextHeading
 BlockQuote = a:BlockQuoteRaw
              {  $$ = mk_element(BLOCKQUOTE);
                 $$->children = a;
-             }  
+             }
 
 BlockQuoteRaw =  a:StartList
                  (( '>' ' '? Line { pushelt($$, a); } )
@@ -298,10 +300,10 @@ BlockQuoteRaw =  a:StartList
                      $$->key = RAW;
                  }
 
-NonblankIndentedLine = !BlankLine IndentedLine 
+NonblankIndentedLine = !BlankLine IndentedLine
 
-VerbatimChunk = a:StartList 
-                ( BlankLine { pushelt($$, a); } )* 
+VerbatimChunk = a:StartList
+                ( BlankLine { pushelt($$, a); } )*
                 ( NonblankIndentedLine { pushelt($$, a); } )+
                 { $$ = mk_str_from_list(a->children, false); }
 
@@ -309,8 +311,8 @@ Verbatim =     a:StartList ( VerbatimChunk { pushelt($$, a); } )+
                { $$ = mk_str_from_list(a->children, false);
                  $$->key = VERBATIM; }
 
-HorizontalRule = NonindentSpace 
-                 ( '*' Sp '*' Sp '*' (Sp '*')* 
+HorizontalRule = NonindentSpace
+                 ( '*' Sp '*' Sp '*' (Sp '*')*
                  | '-' Sp '-' Sp '-' (Sp '-')*
                  | '_' Sp '_' Sp '_' (Sp '_')*)
                  Sp Newline BlankLine+
@@ -320,26 +322,26 @@ Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
 
 BulletList = BulletListTight | BulletListLoose
 
-BulletListTight = a:StartList 
-                  ( BulletListItem { pushelt($$, a); } )+ 
+BulletListTight = a:StartList
+                  ( BulletListItem { pushelt($$, a); } )+
                   BlankLine* !BulletListLoose
-                  { $$ = mk_list(BULLETLIST, a); } 
+                  { $$ = mk_list(BULLETLIST, a); }
 
-BulletListLoose = a:StartList 
-                  ( b:BulletListItem BlankLine* 
+BulletListLoose = a:StartList
+                  ( b:BulletListItem BlankLine*
                     {   element *li;
                         li = b->children;
                         li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
                         strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        pushelt(b, a); 
-                    } )+  
+                        pushelt(b, a);
+                    } )+
                   { $$ = mk_list(BULLETLIST, a); }
 
 BulletListItem = !HorizontalRule &Bullet ListItem
 
 ListItem =       ( Bullet | Enumerator )
-                 a:StartList 
-                 ListBlock { pushelt($$, a); } 
+                 a:StartList
+                 ListBlock { pushelt($$, a); }
                  ( ListContinuationBlock { pushelt($$, a); } )*
                  {  element *raw;
                     raw = malloc(sizeof(element));
@@ -349,13 +351,13 @@ ListItem =       ( Bullet | Enumerator )
                     $$->children = raw;
                  }
 
-ListBlock = a:StartList 
+ListBlock = a:StartList
             Line { pushelt($$, a); }
             ( ListBlockLine { pushelt($$, a); } )*
             { $$ = mk_str_from_list(a->children, false); }
 
-ListContinuationBlock = a:StartList 
-                        ( BlankLines  
+ListContinuationBlock = a:StartList
+                        ( BlankLines
                           {   if (strlen($$->contents.str) == 0)
                                    $$->contents.str = strdup("\001"); /* block separator */
                                pushelt($$, a); } )
@@ -366,29 +368,29 @@ Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
 OrderedList = OrderedListTight | OrderedListLoose
 
-OrderedListTight = a:StartList 
-                  ( OrderedListItem { pushelt($$, a); } )+ 
+OrderedListTight = a:StartList
+                  ( OrderedListItem { pushelt($$, a); } )+
                   BlankLine* !OrderedListLoose
-                  { $$ = mk_list(ORDEREDLIST, a); } 
+                  { $$ = mk_list(ORDEREDLIST, a); }
 
-OrderedListLoose = a:StartList 
-                  ( b:OrderedListItem BlankLine* 
+OrderedListLoose = a:StartList
+                  ( b:OrderedListItem BlankLine*
                     {   element *li;
                         li = b->children;
                         li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
                         strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        pushelt(b, a); 
-                    } )+  
+                        pushelt(b, a);
+                    } )+
                   { $$ = mk_list(ORDEREDLIST, a); }
 
 OrderedListItem =   !HorizontalRule &Enumerator ListItem
 
-BlankLines =    < BlankLine* > 
+BlankLines =    < BlankLine* >
                 { $$ = mk_str(yytext); }
 
-ListBlockLine = !( Indent? ( BulletListItem | OrderedListItem ) ) 
+ListBlockLine = !( Indent? ( BulletListItem | OrderedListItem ) )
                 !BlankLine
-                OptionallyIndentedLine 
+                OptionallyIndentedLine
 
 # Parsers for different kinds of block-level HTML content.
 # This is repetitive due to constraints of PEG grammar.
@@ -533,9 +535,9 @@ HtmlBlockInTags = HtmlBlockOpenAddress (HtmlBlockInTags | !HtmlBlockCloseAddress
                 | HtmlBlockOpenTr (HtmlBlockInTags | !HtmlBlockCloseTr .)* HtmlBlockCloseTr
                 | HtmlBlockOpenScript (HtmlBlockInTags | !HtmlBlockCloseScript .)* HtmlBlockCloseScript
 
-HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) > 
+HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) >
             BlankLine+
-            { $$ = mk_str(yytext); $$->key = HTMLBLOCK; } 
+            { $$ = mk_str(yytext); $$->key = HTMLBLOCK; }
 
 HtmlBlockSelfClosing = '<' Spnl HtmlBlockType Spnl HtmlAttribute* '/' Spnl '>'
 
@@ -546,7 +548,7 @@ HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fi
                 "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
                 "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
 
-Inlines  =  a:StartList ( !Endline Inline { pushelt($$, a); } 
+Inlines  =  a:StartList ( !Endline Inline { pushelt($$, a); }
                         | c:Endline &Inline { pushelt(c, a); } )+ Endline?
             { $$ = mk_list(LIST, a); }
 
@@ -567,13 +569,13 @@ Inline  = Str
         | Smart
         | Symbol
 
-Space = Spacechar+ 
+Space = Spacechar+
         { $$ = mk_element(SPACE); $$->contents.str = strdup(" "); }
 
-Str =   < NormalChar+ > 
+Str =   < NormalChar+ >
         { $$ = mk_str(yytext); }
 
-EscapedChar =   '\\' !Newline < . > 
+EscapedChar =   '\\' !Newline < . >
                 { $$ = mk_str(yytext); }
 
 Entity =    ( HexEntity | DecEntity | CharEntity )
@@ -588,17 +590,17 @@ NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
 TerminalEndline = Sp Newline Eof
                   { $$ = mk_element(SPACE); $$->contents.str = strdup(""); }
 
-LineBreak = "  " Endline 
+LineBreak = "  " Endline
             { $$ = mk_element(LINEBREAK); }
 
-Symbol =    < SpecialChar > 
+Symbol =    < SpecialChar >
             { $$ = mk_str(yytext); }
 
 Emph =      EmphStar | EmphUl
 
 EmphStar =  OneStar !Spacechar !Newline
             a:StartList
-            ( EmphInlineStar { pushelt($$, a); } )+ 
+            ( EmphInlineStar { pushelt($$, a); } )+
             OneStar
             { $$ = mk_list(EMPH, a); }
 
@@ -607,32 +609,32 @@ EmphInlineStar  = StrongStar
 
 EmphUl =    OneUl !Spacechar !Newline
             a:StartList
-            ( EmphInlineUl { pushelt($$, a); } )+ 
+            ( EmphInlineUl { pushelt($$, a); } )+
             OneUl !Alphanumeric
             { $$ = mk_list(EMPH, a); }
 
-EmphInlineUl    =  StrongUl 
+EmphInlineUl    =  StrongUl
                 | !(Spnl OneUl) Inline
 
 Strong = StrongStar | StrongUl
 
 StrongStar =    TwoStar !Spacechar !Newline
                 a:StartList
-                ( StrongInlineStar { pushelt($$, a); } )+ 
+                ( StrongInlineStar { pushelt($$, a); } )+
                 TwoStar
                 { $$ = mk_list(STRONG, a); }
 
-StrongInlineStar =  !(Spnl TwoStar) Inline 
+StrongInlineStar =  !(Spnl TwoStar) Inline
 
 StrongUl =  TwoUl !Spacechar !Newline
             a:StartList
-            ( StrongInlineUl { pushelt($$, a); } )+ 
+            ( StrongInlineUl { pushelt($$, a); } )+
             TwoUl
             { $$ = mk_list(STRONG, a); }
 
 StrongInlineUl = !(Spnl TwoUl) Inline
 
-Image = '!' ( ExplicitLink | ReferenceLink ) 
+Image = '!' ( ExplicitLink | ReferenceLink )
         { $$->key = IMAGE; }
 
 Link =  ExplicitLink | ReferenceLink | AutoLink
@@ -646,7 +648,7 @@ ReferenceLinkDouble =  a:Label < Spnl > !"[]" b:Label
                            else {
                                element *result;
                                result = mk_element(LIST);
-                               result->children = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext), 
+                               result->children = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext),
                                                    cons(mk_str("["), cons(b, mk_str("]")))))));
                                $$ = result;
                            }
@@ -656,7 +658,7 @@ ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                        {   link match;
                            if (find_reference(&match, a->children)) {
                                $$ = mk_link(a->children, match.url, match.title);
-                           } 
+                           }
                            else {
                                element *result;
                                result = mk_element(LIST);
@@ -665,7 +667,7 @@ ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                            }
                        }
 
-ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')' 
+ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')'
                 { $$ = mk_link(l->children, s->contents.str, t->contents.str); }
 
 Source  = ( '<' < SourceContents > '>' | < SourceContents > )
@@ -674,7 +676,7 @@ Source  = ( '<' < SourceContents > '>' | < SourceContents > )
 SourceContents = ( ( !'(' !')' !'>' Nonspacechar )+ | '(' SourceContents ')')*
                  | ""
 
-Title = ( TitleSingle | TitleDouble | < "" > ) 
+Title = ( TitleSingle | TitleDouble | < "" > )
         { $$ = mk_str(yytext); }
 
 TitleSingle = '\'' < ( !( '\'' Sp ( ')' | Newline ) ) !Newline . )* > '\''
@@ -683,20 +685,20 @@ TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) !Newline . )* > '"'
 
 AutoLink = AutoLinkUrl | AutoLinkEmail
 
-AutoLinkUrl =   '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>' 
+AutoLinkUrl =   '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
                 {   $$ = mk_link(cons(mk_str(yytext), NULL), yytext, ""); }
 
-AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>' 
+AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
                 {   char *mailto = malloc(strlen(yytext) + 8);
                     sprintf(mailto, "mailto:%s", yytext);
-                    $$ = mk_link(cons(mk_str(yytext), NULL), mailto, ""); 
-                } 
+                    $$ = mk_link(cons(mk_str(yytext), NULL), mailto, "");
+                }
 
 Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
             { $$ = mk_link(l->children, s->contents.str, t->contents.str); $$->key = REFERENCE; }
 
 Label = '[' ( !'^' &{ extension(EXT_NOTES) } | &. &{ !extension(EXT_NOTES) } )
-        a:StartList 
+        a:StartList
         ( !']' Inline { pushelt($$, a); } )*
         ']'
         { $$ = mk_list(LIST, a); }
@@ -715,7 +717,7 @@ RefTitleDouble = '"' < ( !('"' Sp Newline | Newline) . )* > '"'
 RefTitleParens = '(' < ( !(')' Sp Newline | Newline) . )* > ')'
 
 References = a:StartList
-             ( b:Reference { pushelt(b, a); } | SkipBlock )* 
+             ( b:Reference { pushelt(b, a); } | SkipBlock )*
              { references = a->children; }
 
 Ticks1 = "`"
@@ -729,7 +731,7 @@ Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) ( 
        | Ticks3 Sp < ( ( !'`' Nonspacechar )+ | !Ticks3 '`'+ | !( Sp Ticks3 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks3
        | Ticks4 Sp < ( ( !'`' Nonspacechar )+ | !Ticks4 '`'+ | !( Sp Ticks4 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks4
        | Ticks5 Sp < ( ( !'`' Nonspacechar )+ | !Ticks5 '`'+ | !( Sp Ticks5 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks5
-       ) 
+       )
        { $$ = mk_str(yytext); $$->key = CODE; }
 
 RawHtml =   < (HtmlComment | HtmlTag) >
@@ -749,17 +751,17 @@ Newline =       '\n' | '\r' '\n'?
 Sp =            Spacechar*
 Spnl =          Sp (Newline Sp)?
 SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '<' | '!' | '\\' | ExtendedSpecialChar
-NormalChar =    !( SpecialChar | Spacechar | Newline ) . 
+NormalChar =    !( SpecialChar | Spacechar | Newline ) .
 Alphanumeric =  [A-Za-z0-9]
 Digit = [0-9]
 
-HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' > 
+HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' >
 DecEntity =     < '&' '#' [0-9]+ > ';' >
 CharEntity =    < '&' [A-Za-z0-9]+ ';' >
 
 OneStar =       '*' !OneStar
 OneUl   =       '_' !OneUl
-TwoStar =       "**" !TwoStar 
+TwoStar =       "**" !TwoStar
 TwoUl =         "__" !TwoUl
 
 NonindentSpace =    "   " | "  " | " " | ""
@@ -774,29 +776,29 @@ StartList = &.
 Line =  ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
         { $$ = mk_str(yytext); }
 
-SkipBlock = ( !BlankLine Line )+ BlankLine* 
+SkipBlock = ( !BlankLine Line )+ BlankLine*
           | BlankLine+
 
 # Syntax extensions
 
-ExtendedSpecialChar = &{ extension(EXT_SMART) } ('.' | '-' | '\'' | '"') 
+ExtendedSpecialChar = &{ extension(EXT_SMART) } ('.' | '-' | '\'' | '"')
                     | &{ extension(EXT_NOTES) } ( '^' )
 
-Smart = &{ extension(EXT_SMART) } 
+Smart = &{ extension(EXT_SMART) }
         ( Ellipsis | Dash | SingleQuoted | DoubleQuoted | Apostrophe )
 
 Apostrophe = '\''
              { $$ = mk_element(APOSTROPHE); }
 
-Ellipsis = ("..." | ". . .") 
+Ellipsis = ("..." | ". . .")
            { $$ = mk_element(ELLIPSIS); }
 
 Dash = EmDash | EnDash
 
-EnDash = '-' &Digit  
+EnDash = '-' &Digit
          { $$ = mk_element(ENDASH); }
 
-EmDash = Sp ("---" | "--") Sp 
+EmDash = Sp ("---" | "--") Sp
          { $$ = mk_element(EMDASH); }
 
 SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
@@ -804,10 +806,10 @@ SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | 
 SingleQuoteEnd = '\'' !Alphanumeric
 
 SingleQuoted = SingleQuoteStart
-               a:StartList 
+               a:StartList
                ( !SingleQuoteEnd b:Inline { pushelt(b, a); } )+
                SingleQuoteEnd
-               { $$ = mk_list(SINGLEQUOTED, a); } 
+               { $$ = mk_list(SINGLEQUOTED, a); }
 
 DoubleQuoteStart = '"'
 
@@ -832,9 +834,9 @@ NoteReference = &{ extension(EXT_NOTES) }
                         s = malloc(strlen(ref->contents.str) + 4);
                         strcpy(s, "[^");
                         strcat(s, ref->contents.str);
-                        strcat(s, "]"); 
+                        strcat(s, "]");
                         $$ = mk_str(s);
-                    } 
+                    }
                 }
 
 RawNoteReference = "[^" < ( !Newline !']' . )+ > ']'
@@ -845,8 +847,8 @@ Note =          &{ extension(EXT_NOTES) }
                 a:StartList
                 ( RawNoteBlock { pushelt($$, a); } )
                 ( &Indent RawNoteBlock { pushelt($$, a); } )*
-                {   $$ = mk_list(NOTE, a); 
-                    $$->contents.str = strdup(ref->contents.str); 
+                {   $$ = mk_list(NOTE, a);
+                    $$->contents.str = strdup(ref->contents.str);
                 }
 
 InlineNote =    &{ extension(EXT_NOTES) }
@@ -857,22 +859,20 @@ InlineNote =    &{ extension(EXT_NOTES) }
                 { $$ = mk_list(NOTE, a); $$->contents.str = 0; }
 
 Notes =         a:StartList
-                ( b:Note { pushelt(b, a); } | SkipBlock )* 
+                ( b:Note { pushelt(b, a); } | SkipBlock )*
                 { notes = a->children; }
 
 RawNoteBlock =  a:StartList
                 ( !BlankLine OptionallyIndentedLine { pushelt($$, a); } )+
-                ( BlankLine { pushelt($$, a); } )* 
+                ( BlankLine { pushelt($$, a); } )*
                 {   $$ = mk_str_from_list(a->children, true);
                     $$->key = RAW;
                 }
 
 %%
 
-static void free_element_contents(element elt);
-
 /* free_element_list - free list of elements recursively */
-static void free_element_list(element * elt) {
+void free_element_list(element * elt) {
     element * next = NULL;
     while (elt != NULL) {
         next = elt->next;
@@ -881,13 +881,14 @@ static void free_element_list(element * elt) {
             free_element_list(elt->children);
             elt->children = NULL;
         }
+/* fprintf(stderr,"Freed element for %d\n", elt->key); */
         free(elt);
         elt = next;
     }
 }
 
 /* free_element_contents - free element contents depending on type */
-static void free_element_contents(element elt) {
+void free_element_contents(element elt) {
     switch (elt.key) {
       case STR: case SPACE: case RAW: case HTMLBLOCK: case HTML: case VERBATIM:
         free(elt.contents.str);
@@ -905,28 +906,46 @@ static void free_element_contents(element elt) {
     }
 }
 
-/* markdown_free - free element contents and children recursively */
-void markdown_free(element elt) {
-    free_element_list(elt.children);
-    free_element_contents(elt);
-}
-
-element * markdown(char *string, int extensions) {
+element * parse_references(char *string, int extensions) {
 
     char *oldcharbuf;
-    
     syntax_extensions = extensions;
-   
+
     oldcharbuf = charbuf;
     charbuf = string;
     yyparsefrom(yy_References);    /* first pass, just to collect references */
+    charbuf = oldcharbuf;
 
+    return references;
+}
+
+element * parse_notes(char *string, int extensions, element *reference_list) {
+
+    char *oldcharbuf;
+    syntax_extensions = extensions;
+    references = reference_list;
+
+    oldcharbuf = charbuf;
+    charbuf = string;
     if (extension(EXT_NOTES)) {
         charbuf = string;
         yyparsefrom(yy_Notes);     /* second pass for notes */
     }
 
-    charbuf = string;              /* third pass, for real this time */
+    charbuf = oldcharbuf;
+    return notes;
+}
+
+element * parse_markdown(char *string, int extensions, element *reference_list, element *note_list) {
+
+    char *oldcharbuf;
+    syntax_extensions = extensions;
+    references = reference_list;
+    notes = note_list;
+
+    oldcharbuf = charbuf;
+    charbuf = string;
+
     yyparsefrom(yy_Doc);
 
     charbuf = oldcharbuf;          /* restore charbuf to original value */
