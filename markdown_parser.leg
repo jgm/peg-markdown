@@ -19,8 +19,6 @@
 #include <assert.h>
 #include "markdown_peg.h"
 
-/* #define __DEBUG__ 1 */
-
 extern int strcasecmp(const char *string1, const char *string2);
 int yyparse(void);
 
