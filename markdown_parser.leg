@@ -90,7 +90,7 @@ static int syntax_extensions;  /* Syntax extensions selected. */
 static element * mk_element(int key) {
     element *result = malloc(sizeof(element));
     #ifdef __DEBUG__
-      fprintf(stderr,"Allocated element for %d\n", key);
+      fprintf(stderr,"Allocated element for %d - %d\n", key, result);
     #endif
     result->key = key;
     result->children = NULL;
@@ -885,7 +885,7 @@ void free_element_list(element * elt) {
             elt->children = NULL;
         }
         #ifdef __DEBUG__
-          fprintf(stderr,"Freed element for %d\n", elt->key);
+          fprintf(stderr,"Freed element for %d - %d\n", elt->key, elt);
         #endif
         free(elt);
         elt = next;
