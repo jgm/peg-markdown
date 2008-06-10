@@ -776,10 +776,11 @@ OptionallyIndentedLine = Indent? Line
 StartList = &.
             { $$ = mk_element(LIST); }
 
-Line =  ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
+Line =  RawLine
         { $$ = mk_str(yytext); }
+RawLine = ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
 
-SkipBlock = ( !BlankLine Line )+ BlankLine*
+SkipBlock = ( !BlankLine RawLine )+ BlankLine*
           | BlankLine+
 
 # Syntax extensions
