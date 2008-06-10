@@ -35,12 +35,6 @@ element *cons(element *new, element *list) {
     return new;
 }
 
-/* pushelt - push an element onto the (list) contents of an element */
-static void pushelt(element *new, element *lst) {
-    assert(lst->key == LIST);
-    lst->children = cons(new, lst->children);
-}
-
 /* reverse - reverse a list, returning pointer to new list */
 element *reverse(element *list) {
     element *new = NULL;
@@ -117,16 +111,17 @@ static element * mk_str_from_list(element *list, bool extra_newline) {
         g_string_append(c, "\n");
     result = mk_element(STR);
     result->contents.str = c->str;
+    g_string_free(c, false);
     return result;
 }
 
-/* mk_list - constructs an element with key 'key' and children from 'lst' (reversed).
+/* mk_list - makes new list with key 'key' and children the reverse of 'lst'.
  * This is designed to be used with pushelt to build lists in a parser action.
  * The reversing is necessary because pushelt adds to the head of a list. */
 static element * mk_list(int key, element *lst) {
     element *result;
     result = mk_element(key);
-    result->children = reverse(lst->children);
+    result->children = reverse(lst);
     return result;
 }
 
@@ -247,11 +242,8 @@ static bool find_note(element **result, char *label) {
 
 %}
 
-Doc =       a:Blocks BlankLine* Eof
-            { parse_result = a; }
-
-Blocks =    a:StartList ( Block { pushelt($$, a); } )*
-            { $$ = mk_list(LIST, a); }
+Doc =       a:StartList ( Block { a = cons($$, a); } )*
+            { parse_result = reverse(a); }
 
 Block =     BlankLine*
             ( BlockQuote
@@ -277,15 +269,15 @@ AtxInline = !Newline !(Sp '#'* Sp Newline) Inline
 AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
 
-AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { pushelt($$, a); } )+ (Sp '#'* Sp)?  Newline
+AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp '#'* Sp)?  Newline
             { $$ = mk_list(s->key, a); }
 
 SetextHeading = SetextHeading1 | SetextHeading2
 
-SetextHeading1 =  a:StartList ( !Endline Inline { pushelt($$, a); } )+ Newline "===" '='* Newline
+SetextHeading1 =  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Newline "===" '='* Newline
                   { $$ = mk_list(H1, a); }
 
-SetextHeading2 =  a:StartList ( !Endline Inline { pushelt($$, a) ; } )+ Newline "---" '-'* Newline
+SetextHeading2 =  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Newline "---" '-'* Newline
                   { $$ = mk_list(H2, a); }
 
 Heading = AtxHeading | SetextHeading
@@ -296,23 +288,23 @@ BlockQuote = a:BlockQuoteRaw
              }
 
 BlockQuoteRaw =  a:StartList
-                 (( '>' ' '? Line { pushelt($$, a); } )
-                  ( !'>' !BlankLine Line { pushelt($$, a); } )*
-                  ( BlankLine { pushelt(mk_str("\n"), a); } )*
+                 (( '>' ' '? Line { a = cons($$, a); } )
+                  ( !'>' !BlankLine Line { a = cons($$, a); } )*
+                  ( BlankLine { a = cons(mk_str("\n"), a); } )*
                  )+
-                 {   $$ = mk_str_from_list(a->children, true);
+                 {   $$ = mk_str_from_list(a, true);
                      $$->key = RAW;
                  }
 
 NonblankIndentedLine = !BlankLine IndentedLine
 
 VerbatimChunk = a:StartList
-                ( BlankLine { pushelt(mk_str("\n"), a); } )*
-                ( NonblankIndentedLine { pushelt($$, a); } )+
-                { $$ = mk_str_from_list(a->children, false); }
+                ( BlankLine { a = cons(mk_str("\n"), a); } )*
+                ( NonblankIndentedLine { a = cons($$, a); } )+
+                { $$ = mk_str_from_list(a, false); }
 
-Verbatim =     a:StartList ( VerbatimChunk { pushelt($$, a); } )+
-               { $$ = mk_str_from_list(a->children, false);
+Verbatim =     a:StartList ( VerbatimChunk { a = cons($$, a); } )+
+               { $$ = mk_str_from_list(a, false);
                  $$->key = VERBATIM; }
 
 HorizontalRule = NonindentSpace
@@ -327,7 +319,7 @@ Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
 BulletList = BulletListTight | BulletListLoose
 
 BulletListTight = a:StartList
-                  ( BulletListItem { pushelt($$, a); } )+
+                  ( BulletListItem { a = cons($$, a); } )+
                   BlankLine* !BulletListLoose
                   { $$ = mk_list(BULLETLIST, a); }
 
@@ -337,7 +329,7 @@ BulletListLoose = a:StartList
                         li = b->children;
                         li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
                         strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        pushelt(b, a);
+                        a = cons(b, a);
                     } )+
                   { $$ = mk_list(BULLETLIST, a); }
 
@@ -345,35 +337,35 @@ BulletListItem = !HorizontalRule &Bullet ListItem
 
 ListItem =       ( Bullet | Enumerator )
                  a:StartList
-                 ListBlock { pushelt($$, a); }
-                 ( ListContinuationBlock { pushelt($$, a); } )*
+                 ListBlock { a = cons($$, a); }
+                 ( ListContinuationBlock { a = cons($$, a); } )*
                  {  element *raw;
                     raw = malloc(sizeof(element));
-                    raw = mk_str_from_list(a->children, false);
+                    raw = mk_str_from_list(a, false);
                     raw->key = RAW;
                     $$ = mk_element(LISTITEM);
                     $$->children = raw;
                  }
 
 ListBlock = a:StartList
-            Line { pushelt($$, a); }
-            ( ListBlockLine { pushelt($$, a); } )*
-            { $$ = mk_str_from_list(a->children, false); }
+            Line { a = cons($$, a); }
+            ( ListBlockLine { a = cons($$, a); } )*
+            { $$ = mk_str_from_list(a, false); }
 
 ListContinuationBlock = a:StartList
                         ( BlankLines
                           {   if (strlen($$->contents.str) == 0)
                                    $$->contents.str = strdup("\001"); /* block separator */
-                               pushelt($$, a); } )
-                        ( Indent ListBlock { pushelt($$, a); } )+
-                        { $$ = mk_str_from_list(a->children, false); }
+                               a = cons($$, a); } )
+                        ( Indent ListBlock { a = cons($$, a); } )+
+                        {  $$ = mk_str_from_list(a, false); }
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
 OrderedList = OrderedListTight | OrderedListLoose
 
 OrderedListTight = a:StartList
-                  ( OrderedListItem { pushelt($$, a); } )+
+                  ( OrderedListItem { a = cons($$, a); } )+
                   BlankLine* !OrderedListLoose
                   { $$ = mk_list(ORDEREDLIST, a); }
 
@@ -383,7 +375,7 @@ OrderedListLoose = a:StartList
                         li = b->children;
                         li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
                         strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        pushelt(b, a);
+                        a = cons(b, a);
                     } )+
                   { $$ = mk_list(ORDEREDLIST, a); }
 
@@ -552,8 +544,8 @@ HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fi
                 "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
                 "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
 
-Inlines  =  a:StartList ( !Endline Inline { pushelt($$, a); }
-                        | c:Endline &Inline { pushelt(c, a); } )+ Endline?
+Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
+                        | c:Endline &Inline { a = cons(c, a); } )+ Endline?
             { $$ = mk_list(LIST, a); }
 
 Inline  = Str
@@ -604,7 +596,7 @@ Emph =      EmphStar | EmphUl
 
 EmphStar =  OneStar !Spacechar !Newline
             a:StartList
-            ( EmphInlineStar { pushelt($$, a); } )+
+            ( EmphInlineStar { a = cons($$, a); } )+
             OneStar
             { $$ = mk_list(EMPH, a); }
 
@@ -613,7 +605,7 @@ EmphInlineStar  = StrongStar
 
 EmphUl =    OneUl !Spacechar !Newline
             a:StartList
-            ( EmphInlineUl { pushelt($$, a); } )+
+            ( EmphInlineUl { a = cons($$, a); } )+
             OneUl !Alphanumeric
             { $$ = mk_list(EMPH, a); }
 
@@ -624,7 +616,7 @@ Strong = StrongStar | StrongUl
 
 StrongStar =    TwoStar !Spacechar !Newline
                 a:StartList
-                ( StrongInlineStar { pushelt($$, a); } )+
+                ( StrongInlineStar { a = cons($$, a); } )+
                 TwoStar
                 { $$ = mk_list(STRONG, a); }
 
@@ -632,7 +624,7 @@ StrongInlineStar =  !(Spnl TwoStar) Inline
 
 StrongUl =  TwoUl !Spacechar !Newline
             a:StartList
-            ( StrongInlineUl { pushelt($$, a); } )+
+            ( StrongInlineUl { a = cons($$, a); } )+
             TwoUl
             { $$ = mk_list(STRONG, a); }
 
@@ -703,7 +695,7 @@ Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc Spnl t:RefTitle Blank
 
 Label = '[' ( !'^' &{ extension(EXT_NOTES) } | &. &{ !extension(EXT_NOTES) } )
         a:StartList
-        ( !']' Inline { pushelt($$, a); } )*
+        ( !']' Inline { a = cons($$, a); } )*
         ']'
         { $$ = mk_list(LIST, a); }
 
@@ -721,8 +713,8 @@ RefTitleDouble = '"' < ( !('"' Sp Newline | Newline) . )* > '"'
 RefTitleParens = '(' < ( !(')' Sp Newline | Newline) . )* > ')'
 
 References = a:StartList
-             ( b:Reference { pushelt(b, a); } | SkipBlock )*
-             { references = a->children; }
+             ( b:Reference { a = cons(b, a); } | SkipBlock )*
+             { references = reverse(a); }
 
 Ticks1 = "`"
 Ticks2 = "``"
@@ -774,7 +766,7 @@ OptionallyIndentedLine = Indent? Line
 
 # StartList starts a list data structure that can be added to with pushelt:
 StartList = &.
-            { $$ = mk_element(LIST); }
+            { $$ = NULL; }
 
 Line =  RawLine
         { $$ = mk_str(yytext); }
@@ -811,7 +803,7 @@ SingleQuoteEnd = '\'' !Alphanumeric
 
 SingleQuoted = SingleQuoteStart
                a:StartList
-               ( !SingleQuoteEnd b:Inline { pushelt(b, a); } )+
+               ( !SingleQuoteEnd b:Inline { a = cons(b, a); } )+
                SingleQuoteEnd
                { $$ = mk_list(SINGLEQUOTED, a); }
 
@@ -821,7 +813,7 @@ DoubleQuoteEnd = '"'
 
 DoubleQuoted =  DoubleQuoteStart
                 a:StartList
-                ( !DoubleQuoteEnd b:Inline { pushelt(b, a); } )+
+                ( !DoubleQuoteEnd b:Inline { a = cons(b, a); } )+
                 DoubleQuoteEnd
                 { $$ = mk_list(DOUBLEQUOTED, a); }
 
@@ -849,8 +841,8 @@ RawNoteReference = "[^" < ( !Newline !']' . )+ > ']'
 Note =          &{ extension(EXT_NOTES) }
                 NonindentSpace ref:RawNoteReference ':' Sp
                 a:StartList
-                ( RawNoteBlock { pushelt($$, a); } )
-                ( &Indent RawNoteBlock { pushelt($$, a); } )*
+                ( RawNoteBlock { a = cons($$, a); } )
+                ( &Indent RawNoteBlock { a = cons($$, a); } )*
                 {   $$ = mk_list(NOTE, a);
                     $$->contents.str = strdup(ref->contents.str);
                 }
@@ -858,18 +850,18 @@ Note =          &{ extension(EXT_NOTES) }
 InlineNote =    &{ extension(EXT_NOTES) }
                 "^["
                 a:StartList
-                ( !']' Inline { pushelt($$, a); } )+
+                ( !']' Inline { a = cons($$, a); } )+
                 ']'
                 { $$ = mk_list(NOTE, a); $$->contents.str = 0; }
 
 Notes =         a:StartList
-                ( b:Note { pushelt(b, a); } | SkipBlock )*
-                { notes = a->children; }
+                ( b:Note { a = cons(b, a); } | SkipBlock )*
+                { notes = reverse(a); }
 
 RawNoteBlock =  a:StartList
-                ( !BlankLine OptionallyIndentedLine { pushelt($$, a); } )+
-                ( BlankLine { pushelt($$, a); } )*
-                {   $$ = mk_str_from_list(a->children, true);
+                ( !BlankLine OptionallyIndentedLine { a = cons($$, a); } )+
+                ( BlankLine { a = cons($$, a); } )*
+                {   $$ = mk_str_from_list(a, true);
                     $$->key = RAW;
                 }
 

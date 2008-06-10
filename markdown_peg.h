@@ -74,5 +74,5 @@ element * parse_notes(char *string, int extensions, element *reference_list);
 element * parse_markdown(char *string, int extensions, element *reference_list, element *note_list);
 void free_element_list(element * elt);
 void free_element_contents(element elt);
-void print_element(GString * out, element elt, int format, int extensions);
+void print_element_list(GString *out, element *elt, int format, int exts);
 

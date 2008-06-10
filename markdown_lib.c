@@ -114,7 +114,7 @@ GString * markdown_to_g_string(char *text, int extensions, int output_format) {
 
     free(formatted_text);
 
-    print_element(out, *result, output_format, extensions);
+    print_element_list(out, result, output_format, extensions);
 
     free_element_list(result);
     free_element_list(references);
@@ -136,12 +136,13 @@ static element * process_raw_blocks(element *input, int extensions, element *ref
             contents = strtok(current->contents.str, "\001");
             current->key = LIST;
             current->children = parse_markdown(contents, extensions, references, notes);
-            free(current->contents.str);
-            current->contents.str = NULL;
             last_child = current->children;
             while ((contents = strtok(NULL, "\001"))) {
+                while (last_child->next != NULL)
+                    last_child = last_child->next;
                 last_child->next = parse_markdown(contents, extensions, references, notes);
-                last_child = last_child->next;
+            free(current->contents.str);
+            current->contents.str = NULL;
             }
         }
         if (current->children != NULL)

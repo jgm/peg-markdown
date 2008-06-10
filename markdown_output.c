@@ -724,21 +724,21 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
 
  ***********************************************************************/
 
-void print_element(GString *out, element elt, int format, int exts) {
+void print_element_list(GString *out, element *elt, int format, int exts) {
     extensions = exts;
     switch (format) {
     case HTML_FORMAT:
-        print_html_element(out, elt, false);
+        print_html_element_list(out, elt, false);
         if (endnotes != NULL) {
             pad(out, 2);
             print_html_endnotes(out);
         }
         break;
     case LATEX_FORMAT:
-        print_latex_element(out, elt);
+        print_latex_element_list(out, elt);
         break;
     case GROFF_MM_FORMAT:
-        print_groff_mm_element(out, elt, 1);
+        print_groff_mm_element_list(out, elt);
         break;
     default:
         fprintf(stderr, "print_element - unknown format = %d\n", format); 
