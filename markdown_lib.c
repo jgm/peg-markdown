@@ -141,9 +141,9 @@ static element * process_raw_blocks(element *input, int extensions, element *ref
                 while (last_child->next != NULL)
                     last_child = last_child->next;
                 last_child->next = parse_markdown(contents, extensions, references, notes);
+            }
             free(current->contents.str);
             current->contents.str = NULL;
-            }
         }
         if (current->children != NULL)
             current->children = process_raw_blocks(current->children, extensions, references, notes);
