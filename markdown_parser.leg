@@ -51,13 +51,19 @@ element *reverse(element *list) {
  * Frees STR elements as they are added to the concatenation. */
 static GString *concat_string_list(element *list) {
     GString *result;
+    element *next;
     result = g_string_new("");
     while (list != NULL) {
         assert(list->key == STR);
         assert(list->contents.str != NULL);
         g_string_append(result, list->contents.str);
+        next = list->next;
+        #ifdef __DEBUG__
+          fprintf(stderr,"Freed element for %d - %d\n", list->key, list);
+        #endif
         free(list->contents.str);
-        list = list->next;
+        free(list);
+        list = next;
     }
     return result;
 }
@@ -342,7 +348,6 @@ ListItem =       ( Bullet | Enumerator )
                  ListBlock { a = cons($$, a); }
                  ( ListContinuationBlock { a = cons($$, a); } )*
                  {  element *raw;
-                    raw = malloc(sizeof(element));
                     raw = mk_str_from_list(a, false);
                     raw->key = RAW;
                     $$ = mk_element(LISTITEM);
@@ -690,6 +695,7 @@ AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
                 {   char *mailto = malloc(strlen(yytext) + 8);
                     sprintf(mailto, "mailto:%s", yytext);
                     $$ = mk_link(cons(mk_str(yytext), NULL), mailto, "");
+                    free(mailto);
                 }
 
 Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
@@ -830,10 +836,9 @@ NoteReference = &{ extension(EXT_NOTES) }
                     } else {
                         char *s;
                         s = malloc(strlen(ref->contents.str) + 4);
-                        strcpy(s, "[^");
-                        strcat(s, ref->contents.str);
-                        strcat(s, "]");
+                        sprintf(s, "[^%s]", ref->contents.str);
                         $$ = mk_str(s);
+                        free(s);
                     }
                 }
 
