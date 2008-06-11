@@ -47,7 +47,8 @@ element *reverse(element *list) {
     return new;
 }
 
-/* concat_string_list - concatenates string contents of list of STR elements */
+/* concat_string_list - concatenates string contents of list of STR elements.
+ * Frees STR elements as they are added to the concatenation. */
 static GString *concat_string_list(element *list) {
     GString *result;
     result = g_string_new("");
@@ -55,6 +56,7 @@ static GString *concat_string_list(element *list) {
         assert(list->key == STR);
         assert(list->contents.str != NULL);
         g_string_append(result, list->contents.str);
+        free(list->contents.str);
         list = list->next;
     }
     return result;
