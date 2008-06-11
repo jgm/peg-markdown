@@ -361,9 +361,10 @@ ListBlock = a:StartList
 
 ListContinuationBlock = a:StartList
                         ( BlankLines
-                          {   if (strlen($$->contents.str) == 0)
+                          {   if (strlen($$->contents.str) == 0) {
                                    free($$->contents.str);
                                    $$->contents.str = strdup("\001"); /* block separator */
+                               }
                                a = cons($$, a); } )
                         ( Indent ListBlock { a = cons($$, a); } )+
                         {  $$ = mk_str_from_list(a, false); }
