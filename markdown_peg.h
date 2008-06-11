@@ -22,7 +22,7 @@ typedef struct Link link;
 /* Union for contents of an Element (string, list, or link). */
 union Contents {
     char             *str;
-    struct Link      link;
+    struct Link      *link;
 };
 
 /* Types of semantic values returned by parsers. */ 

@@ -144,29 +144,29 @@ static void print_html_element(GString *out, element elt, bool obfuscate) {
         g_string_append_printf(out, "%s", elt.contents.str);
         break;
     case LINK:
-        if (strstr(elt.contents.link.url, "mailto:") == elt.contents.link.url)
+        if (strstr(elt.contents.link->url, "mailto:") == elt.contents.link->url)
             obfuscate = true;  /* obfuscate mailto: links */
         g_string_append_printf(out, "<a href=\"");
-        print_html_string(out, elt.contents.link.url, obfuscate);
+        print_html_string(out, elt.contents.link->url, obfuscate);
         g_string_append_printf(out, "\"");
-        if (strlen(elt.contents.link.title) > 0) {
+        if (strlen(elt.contents.link->title) > 0) {
             g_string_append_printf(out, " title=\"");
-            print_html_string(out, elt.contents.link.title, obfuscate);
+            print_html_string(out, elt.contents.link->title, obfuscate);
             g_string_append_printf(out, "\"");
         }
         g_string_append_printf(out, ">");
-        print_html_element_list(out, elt.contents.link.label, obfuscate);
+        print_html_element_list(out, elt.contents.link->label, obfuscate);
         g_string_append_printf(out, "</a>");
         break;
     case IMAGE:
         g_string_append_printf(out, "<img src=\"");
-        print_html_string(out, elt.contents.link.url, obfuscate);
+        print_html_string(out, elt.contents.link->url, obfuscate);
         g_string_append_printf(out, "\" alt=\"");
-        print_html_element_list(out, elt.contents.link.label, obfuscate);
+        print_html_element_list(out, elt.contents.link->label, obfuscate);
         g_string_append_printf(out, "\"");
-        if (strlen(elt.contents.link.title) > 0) {
+        if (strlen(elt.contents.link->title) > 0) {
             g_string_append_printf(out, " title=\"");
-            print_html_string(out, elt.contents.link.title, obfuscate);
+            print_html_string(out, elt.contents.link->title, obfuscate);
             g_string_append_printf(out, "\"");
         }
         g_string_append_printf(out, " />");
@@ -393,12 +393,12 @@ static void print_latex_element(GString *out, element elt) {
         /* don't print HTML */
         break;
     case LINK:
-        g_string_append_printf(out, "\\href{%s}{", elt.contents.link.url);
-        print_latex_element_list(out, elt.contents.link.label);
+        g_string_append_printf(out, "\\href{%s}{", elt.contents.link->url);
+        print_latex_element_list(out, elt.contents.link->label);
         g_string_append_printf(out, "}");
         break;
     case IMAGE:
-        g_string_append_printf(out, "\\includegraphics{%s}", elt.contents.link.url);
+        g_string_append_printf(out, "\\includegraphics{%s}", elt.contents.link->url);
         break;
     case EMPH:
         g_string_append_printf(out, "\\emph{");
@@ -595,13 +595,13 @@ static void print_groff_mm_element(GString *out, element elt, int count) {
         /* don't print HTML */
         break;
     case LINK:
-        print_groff_mm_element_list(out, elt.contents.link.label);
-        g_string_append_printf(out, " (%s)", elt.contents.link.url);
+        print_groff_mm_element_list(out, elt.contents.link->label);
+        g_string_append_printf(out, " (%s)", elt.contents.link->url);
         padded = 0;
         break;
     case IMAGE:
         g_string_append_printf(out, "[IMAGE: ");
-        print_groff_mm_element_list(out, elt.contents.link.label);
+        print_groff_mm_element_list(out, elt.contents.link->label);
         g_string_append_printf(out, "]");
         padded = 0;
         /* not supported */
