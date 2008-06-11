@@ -158,8 +158,8 @@ char * markdown_to_string(char *text, int extensions, int output_format) {
     GString *out;
     char *char_out;
     out = markdown_to_g_string(text, extensions, output_format);
-    char_out = strdup(out->str);
-    g_string_free(out, true);
+    char_out = out->str;
+    g_string_free(out, false);
     return char_out;
 }
 
