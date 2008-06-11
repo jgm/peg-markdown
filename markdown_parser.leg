@@ -61,8 +61,7 @@ static GString *concat_string_list(element *list) {
         #ifdef __DEBUG__
           fprintf(stderr,"Freed element for %d - %d\n", list->key, list);
         #endif
-        free(list->contents.str);
-        free(list);
+        free_element(list);
         list = next;
     }
     return result;
@@ -675,7 +674,10 @@ ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                        }
 
 ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')'
-                { $$ = mk_link(l->children, s->contents.str, t->contents.str); }
+                { $$ = mk_link(l->children, s->contents.str, t->contents.str);
+                  free_element(s);
+                  free_element(t);
+                  free(l); }
 
 Source  = ( '<' < SourceContents > '>' | < SourceContents > )
           { $$ = mk_str(yytext); }
@@ -703,7 +705,11 @@ AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
                 }
 
 Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
-            { $$ = mk_link(l->children, s->contents.str, t->contents.str); $$->key = REFERENCE; }
+            { $$ = mk_link(l->children, s->contents.str, t->contents.str);
+              free_element(s);
+              free_element(t);
+              free(l);
+              $$->key = REFERENCE; }
 
 Label = '[' ( !'^' &{ extension(EXT_NOTES) } | &. &{ !extension(EXT_NOTES) } )
         a:StartList
@@ -711,7 +717,9 @@ Label = '[' ( !'^' &{ extension(EXT_NOTES) } | &. &{ !extension(EXT_NOTES) } )
         ']'
         { $$ = mk_list(LIST, a); }
 
-RefSrc = < Nonspacechar+ > { $$ = mk_str(yytext); $$->key = HTML; }
+RefSrc = < Nonspacechar+ > 
+         { $$ = mk_str(yytext); 
+           $$->key = HTML; }
 
 RefTitle =  ( RefTitleSingle | RefTitleDouble | RefTitleParens | EmptyTitle )
             { $$ = mk_str(yytext); }
@@ -871,7 +879,7 @@ Notes =         a:StartList
                 { notes = reverse(a); }
 
 RawNoteBlock =  a:StartList
-                ( !BlankLine OptionallyIndentedLine { a = cons($$, a); } )+
+                    ( !BlankLine OptionallyIndentedLine { a = cons($$, a); } )+
                 ( BlankLine { a = cons($$, a); } )*
                 {   $$ = mk_str_from_list(a, true);
                     $$->key = RAW;
@@ -921,6 +929,12 @@ void free_element_contents(element elt) {
       default:
         ;
     }
+}
+
+/* free_element - free element and contents */
+void free_element(element *elt) {
+    free_element_contents(*elt);
+    free(elt);
 }
 
 element * parse_references(char *string, int extensions) {
