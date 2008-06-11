@@ -9,7 +9,7 @@
 
 /* preformat_text - allocate and copy text buffer while
  * performing tab expansion. */
-static char *preformat_text(char *text) {
+static GString *preformat_text(char *text) {
     GString *buf;
     char next_char;
     int charstotab;
@@ -35,7 +35,7 @@ static char *preformat_text(char *text) {
             charstotab = TABSTOP;
     }
     g_string_append(buf, "\n\n");
-    return(buf->str);
+    return(buf);
 }
 
 
@@ -101,18 +101,18 @@ GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     element *result;
     element *references;
     element *notes;
-    char *formatted_text;
+    GString *formatted_text;
     GString *out;
     out = g_string_new("");
 
     formatted_text = preformat_text(text);
 
-    references = parse_references(formatted_text, extensions);
-    notes = parse_notes(formatted_text, extensions, references);
-    result = parse_markdown(formatted_text, extensions, references, notes);
+    references = parse_references(formatted_text->str, extensions);
+    notes = parse_notes(formatted_text->str, extensions, references);
+    result = parse_markdown(formatted_text->str, extensions, references, notes);
     result = process_raw_blocks(result, extensions, references, notes);
 
-    free(formatted_text);
+    g_string_free(formatted_text, true);
 
     print_element_list(out, result, output_format, extensions);
 
