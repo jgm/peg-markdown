@@ -914,6 +914,7 @@ void free_element_contents(element elt) {
       case HTMLBLOCK:
       case HTML:
       case VERBATIM:
+      case CODE:
       case NOTE:
         free(elt.contents.str);
         elt.contents.str = NULL;
