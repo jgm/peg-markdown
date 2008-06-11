@@ -593,8 +593,7 @@ NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
                     $$->key = SPACE; }
 
 TerminalEndline = Sp Newline Eof
-                  { $$ = mk_str("");
-                    $$->key = SPACE; }
+                  { $$ = NULL; }
 
 LineBreak = "  " Endline
             { $$ = mk_element(LINEBREAK); }
