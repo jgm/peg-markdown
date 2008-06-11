@@ -362,6 +362,7 @@ ListBlock = a:StartList
 ListContinuationBlock = a:StartList
                         ( BlankLines
                           {   if (strlen($$->contents.str) == 0)
+                                   free($$->contents.str);
                                    $$->contents.str = strdup("\001"); /* block separator */
                                a = cons($$, a); } )
                         ( Indent ListBlock { a = cons($$, a); } )+
@@ -573,7 +574,8 @@ Inline  = Str
         | Symbol
 
 Space = Spacechar+
-        { $$ = mk_element(SPACE); $$->contents.str = strdup(" "); }
+        { $$ = mk_str(" ");
+          $$->key = SPACE; }
 
 Str =   < NormalChar+ >
         { $$ = mk_str(yytext); }
@@ -588,10 +590,12 @@ Endline =   TerminalEndline | NormalEndline
 
 NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
                   !(Line ("===" '='* | "---" '-'*) Newline)
-                  { $$ = mk_element(SPACE); $$->contents.str = strdup("\n"); }
+                  { $$ = mk_str("\n");
+                    $$->key = SPACE; }
 
 TerminalEndline = Sp Newline Eof
-                  { $$ = mk_element(SPACE); $$->contents.str = strdup(""); }
+                  { $$ = mk_str("");
+                    $$->key = SPACE; }
 
 LineBreak = "  " Endline
             { $$ = mk_element(LINEBREAK); }
@@ -859,7 +863,8 @@ InlineNote =    &{ extension(EXT_NOTES) }
                 a:StartList
                 ( !']' Inline { a = cons($$, a); } )+
                 ']'
-                { $$ = mk_list(NOTE, a); $$->contents.str = 0; }
+                { $$ = mk_list(NOTE, a);
+                  $$->contents.str = 0; }
 
 Notes =         a:StartList
                 ( b:Note { a = cons(b, a); } | SkipBlock )*
@@ -895,11 +900,18 @@ void free_element_list(element * elt) {
 /* free_element_contents - free element contents depending on type */
 void free_element_contents(element elt) {
     switch (elt.key) {
-      case STR: case SPACE: case RAW: case HTMLBLOCK: case HTML: case VERBATIM:
+      case STR:
+      case SPACE:
+      case RAW:
+      case HTMLBLOCK:
+      case HTML:
+      case VERBATIM:
+      case NOTE:
         free(elt.contents.str);
         elt.contents.str = NULL;
         break;
-      case LINK: case IMAGE:
+      case LINK:
+      case IMAGE:
         free(elt.contents.link.url);
         elt.contents.link.url = NULL;
         free(elt.contents.link.title);
