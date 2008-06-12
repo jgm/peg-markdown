@@ -9,8 +9,8 @@ extern int strcasecmp(const char *string1, const char *string2);
 
  ***********************************************************************/
 
-/* pushelt - push an element onto a list, returning pointer to new head */
-static element * pushelt(element *new, element *list) {
+/* cons - cons an element onto a list, returning pointer to new head */
+static element * cons(element *new, element *list) {
     assert(new != NULL);
     new->next = list;
     return new;
@@ -22,7 +22,7 @@ static element *reverse(element *list) {
     element *next = NULL;
     while (list != NULL) {
         next = list->next;
-        new = pushelt(list, new);
+        new = cons(list, new);
         list = next;
     }
     return new;
@@ -98,8 +98,8 @@ static element * mk_str_from_list(element *list, bool extra_newline) {
 }
 
 /* mk_list - makes new list with key 'key' and children the reverse of 'lst'.
- * This is designed to be used with pushelt to build lists in a parser action.
- * The reversing is necessary because pushelt adds to the head of a list. */
+ * This is designed to be used with cons to build lists in a parser action.
+ * The reversing is necessary because cons adds to the head of a list. */
 static element * mk_list(int key, element *lst) {
     element *result;
     result = mk_element(key);
