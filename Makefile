@@ -15,7 +15,7 @@ $(LEG):
 $(PROGRAM) : markdown.c $(OBJS)
 	$(CC) `pkg-config --cflags glib-2.0` `pkg-config --libs glib-2.0` $(CFLAGS) -o $@ $(OBJS) $<
 
-markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h
+markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.c utility_functions.c
 	$(LEG) -o $@ $<
 
 .PHONY: clean test
