@@ -67,7 +67,6 @@ struct Element {
 
 typedef struct Element element;
 
-element *cons(element *new, element *list);
 element *reverse(element *list);
 element * parse_references(char *string, int extensions);
 element * parse_notes(char *string, int extensions, element *reference_list);
