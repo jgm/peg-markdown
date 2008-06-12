@@ -7,7 +7,7 @@ PEGDIR=peg-0.1.4
 LEG=$(PEGDIR)/leg
 
 $(LEG):
-	make -C $(PEGDIR)
+	CC=gcc make -C $(PEGDIR)
 
 %.o : %.c markdown_peg.h
 	$(CC) -c `pkg-config --cflags glib-2.0` $(CFLAGS) -o $@ $<
