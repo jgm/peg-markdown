@@ -68,8 +68,7 @@ Hacking
 It should be pretty easy to modify the program to produce other formats
 than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
 
-  * `markdown_parser.leg` contains the grammar itself, the `markdown()`
-    function, and some utility functions used by the parser actions.
+  * `markdown_parser.leg` contains the grammar itself.
 
   * `markdown_output.c` contains functions for printing the `Element`
     structure in various output formats.  (This includes calling
@@ -82,9 +81,9 @@ than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
     option in the main program that selects the new format. Don't forget
     to add it to the help message.
 
-  * To add syntax extensions, define them in the PEG grammar (bottom part
-    of `markdown_parser.leg`), using existing extensions as a guide.
-    New inline elements will need to be added to `Inline =`; new block
+  * To add syntax extensions, define them in the PEG grammar
+    (`markdown_parser.leg`), using existing extensions as a guide. New
+    inline elements will need to be added to `Inline =`; new block
     elements will need to be added to `Block =`. If you need to add new
     types of elements, modify the `keys` enum. By using `&{ }` rules
     one can selectively disable extensions depending on command-line
