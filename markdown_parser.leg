@@ -74,8 +74,8 @@ static GString *concat_string_list(element *list) {
  ***********************************************************************/
 
 static char *charbuf = "";     /* Buffer of characters to be parsed. */
-static element *references;    /* List of link references found. */
-static element *notes;         /* List of footnotes found. */
+static element *references = NULL;    /* List of link references found. */
+static element *notes = NULL;         /* List of footnotes found. */
 static element *parse_result;  /* Results of parse. */
 static int syntax_extensions;  /* Syntax extensions selected. */
 
@@ -877,7 +877,7 @@ Notes =         a:StartList
 
 RawNoteBlock =  a:StartList
                     ( !BlankLine OptionallyIndentedLine { a = cons($$, a); } )+
-                ( BlankLine { a = cons($$, a); } )*
+                ( < BlankLine* > { a = cons(mk_str(yytext), a); } )
                 {   $$ = mk_str_from_list(a, true);
                     $$->key = RAW;
                 }
@@ -952,17 +952,17 @@ element * parse_references(char *string, int extensions) {
 element * parse_notes(char *string, int extensions, element *reference_list) {
 
     char *oldcharbuf;
+    notes = NULL;
     syntax_extensions = extensions;
-    references = reference_list;
 
-    oldcharbuf = charbuf;
-    charbuf = string;
     if (extension(EXT_NOTES)) {
+        references = reference_list;
+        oldcharbuf = charbuf;
         charbuf = string;
         yyparsefrom(yy_Notes);     /* second pass for notes */
+        charbuf = oldcharbuf;
     }
 
-    charbuf = oldcharbuf;
     return notes;
 }
 
