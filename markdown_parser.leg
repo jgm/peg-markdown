@@ -278,7 +278,8 @@ AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
 
 AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp '#'* Sp)?  Newline
-            { $$ = mk_list(s->key, a); }
+            { $$ = mk_list(s->key, a);
+              free(s); }
 
 SetextHeading = SetextHeading1 | SetextHeading2
 
