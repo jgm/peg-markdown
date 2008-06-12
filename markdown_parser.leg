@@ -922,6 +922,7 @@ void free_element_contents(element elt) {
         break;
       case LINK:
       case IMAGE:
+      case REFERENCE:
         free(elt.contents.link->url);
         elt.contents.link->url = NULL;
         free(elt.contents.link->title);
