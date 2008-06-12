@@ -67,7 +67,6 @@ struct Element {
 
 typedef struct Element element;
 
-element *reverse(element *list);
 element * parse_references(char *string, int extensions);
 element * parse_notes(char *string, int extensions, element *reference_list);
 element * parse_markdown(char *string, int extensions, element *reference_list, element *note_list);

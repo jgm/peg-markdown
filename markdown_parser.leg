@@ -36,7 +36,7 @@ static element * pushelt(element *new, element *list) {
 }
 
 /* reverse - reverse a list, returning pointer to new list */
-element *reverse(element *list) {
+static element *reverse(element *list) {
     element *new = NULL;
     element *next = NULL;
     while (list != NULL) {
