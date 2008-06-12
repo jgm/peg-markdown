@@ -882,6 +882,8 @@ RawNoteBlock =  a:StartList
 
 %%
 
+static void free_element_contents(element elt);
+
 /* free_element_list - free list of elements recursively */
 void free_element_list(element * elt) {
     element * next = NULL;
@@ -898,7 +900,7 @@ void free_element_list(element * elt) {
 }
 
 /* free_element_contents - free element contents depending on type */
-void free_element_contents(element elt) {
+static void free_element_contents(element elt) {
     switch (elt.key) {
       case STR:
       case SPACE:
