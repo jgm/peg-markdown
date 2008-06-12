@@ -7,9 +7,9 @@ It uses a PEG grammar to define the syntax. This should allow easy
 modification and extension.
 
 It is pretty fast. A 179K text file that takes 5.7 seconds for
-Markdown.pl (v. 1.0.1) to parse takes only 0.2 seconds for this
+Markdown.pl (v. 1.0.1) to parse takes only 0.14 seconds for this
 markdown.  It does, however, use a fair amount of memory.
-It also has quite a few memory leaks and should not be used in
+It still has some memory leaks and thus should not be used in
 a long-running application.  (I hope to fix this problem; patches
 are welcome.)
 
