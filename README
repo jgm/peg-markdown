@@ -9,9 +9,6 @@ modification and extension.
 It is pretty fast. A 179K text file that takes 5.7 seconds for
 Markdown.pl (v. 1.0.1) to parse takes only 0.14 seconds for this
 markdown.  It does, however, use a fair amount of memory.
-It still has some memory leaks and thus should not be used in
-a long-running application.  (I hope to fix this problem; patches
-are welcome.)
 
 Installing
 ==========
@@ -71,9 +68,6 @@ Hacking
 It should be pretty easy to modify the program to produce other formats
 than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
 
-  * `markdown_peg.h` contains declarations for both `markdown_parser.leg`
-    and `markdown_output.c`.
-
   * `markdown_parser.leg` contains the grammar itself, the `markdown()`
     function, and some utility functions used by the parser actions.
 
@@ -92,13 +86,12 @@ than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
     of `markdown_parser.leg`), using existing extensions as a guide.
     New inline elements will need to be added to `Inline =`; new block
     elements will need to be added to `Block =`. If you need to add new
-    types of elements (e.g. `FOOTNOTE`), modify the `keys` enum. By using
-    `&{ }` rules one can selectively disable extensions depending
-    on command-line options. For example, `&{ extension(EXT_SMART) }`
-    succeeds only if the `EXT_SMART` bit of the global
-    `syntax_extensions` is set.  Add your option to `markdown_extensions`,
-    and modify the option parsing in `markdown.c` so that your option gets
-    set appropriately.
+    types of elements, modify the `keys` enum. By using `&{ }` rules
+    one can selectively disable extensions depending on command-line
+    options. For example, `&{ extension(EXT_SMART) }` succeeds only if
+    the `EXT_SMART` bit of the global `syntax_extensions` is set. Add
+    your option to `markdown_extensions`, and modify the option parsing
+    in `markdown.c` so that your option gets set appropriately.
 
   * Note:  Avoid using `[^abc]` character classes in the grammar, because they
     cause problems with non-ascii input.  Instead, use:  `( !'a' !'b' !'c' . )`
