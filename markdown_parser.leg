@@ -646,9 +646,11 @@ ReferenceLink = ReferenceLinkDouble | ReferenceLinkSingle
 
 ReferenceLinkDouble =  a:Label < Spnl > !"[]" b:Label
                        {   link match;
-                           if (find_reference(&match, b->children))
+                           if (find_reference(&match, b->children)) {
                                $$ = mk_link(a->children, match.url, match.title);
-                           else {
+                               free(a);
+                               free_element_list(b);
+                           } else {
                                element *result;
                                result = mk_element(LIST);
                                result->children = cons(mk_str("["), cons(a, cons(mk_str("]"), cons(mk_str(yytext),
@@ -661,6 +663,7 @@ ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                        {   link match;
                            if (find_reference(&match, a->children)) {
                                $$ = mk_link(a->children, match.url, match.title);
+                               free(a);
                            }
                            else {
                                element *result;
@@ -924,6 +927,7 @@ void free_element_contents(element elt) {
         elt.contents.link->title = NULL;
         free_element_list(elt.contents.link->label);
         free(elt.contents.link);
+        elt.contents.link = NULL;
         break;
       default:
         ;
