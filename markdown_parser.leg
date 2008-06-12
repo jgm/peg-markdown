@@ -360,12 +360,11 @@ ListBlock = a:StartList
             { $$ = mk_str_from_list(a, false); }
 
 ListContinuationBlock = a:StartList
-                        ( BlankLines
-                          {   if (strlen($$->contents.str) == 0) {
-                                   free($$->contents.str);
-                                   $$->contents.str = strdup("\001"); /* block separator */
-                               }
-                               a = cons($$, a); } )
+                        ( < BlankLine* >
+                          {   if (strlen(yytext) == 0)
+                                   a = cons(mk_str("\001"), a); /* block separator */
+                              else
+                                   a = cons(mk_str(yytext), a); } )
                         ( Indent ListBlock { a = cons($$, a); } )+
                         {  $$ = mk_str_from_list(a, false); }
 
@@ -389,9 +388,6 @@ OrderedListLoose = a:StartList
                   { $$ = mk_list(ORDEREDLIST, a); }
 
 OrderedListItem =   !HorizontalRule &Enumerator ListItem
-
-BlankLines =    < BlankLine* >
-                { $$ = mk_str(yytext); }
 
 ListBlockLine = !( Indent? ( BulletListItem | OrderedListItem ) )
                 !BlankLine
