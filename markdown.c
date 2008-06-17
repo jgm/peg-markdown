@@ -1,6 +1,6 @@
 /**********************************************************************
 
-  markdown.c - markdown in C using a PEG grammar. 
+  markdown.c - markdown in C using a PEG grammar.
   (c) 2008 John MacFarlane (jgm at berkeley dot edu).
 
   This program is free software; you can redistribute it and/or modify
@@ -173,4 +173,3 @@ int main(int argc, char * argv[]) {
 
     return(EXIT_SUCCESS);
 }
-
