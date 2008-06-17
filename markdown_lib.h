@@ -13,7 +13,6 @@ enum markdown_formats {
     GROFF_MM_FORMAT
 };
 
-int    markdown_to_stream(char *text, int extensions, int output_format, FILE *stream);
 GString * markdown_to_g_string(char *text, int extensions, int output_format);
 char * markdown_to_string(char *text, int extensions, int output_format);
 

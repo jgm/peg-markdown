@@ -55,6 +55,7 @@ int main(int argc, char * argv[]) {
     int i;
 
     GString *inputbuf;
+    char *out;              /* string containing processed output */
 
     FILE *input;
     FILE *output;
@@ -164,8 +165,10 @@ int main(int argc, char * argv[]) {
        }
     }
 
-    markdown_to_stream(inputbuf->str, extensions, output_format, output);
-    fprintf(output, "\n");
+    out = markdown_to_string(inputbuf->str, extensions, output_format);
+    fprintf(output, "%s\n", out);
+    free(out);
+
     g_string_free(inputbuf, true);
 
     return(EXIT_SUCCESS);

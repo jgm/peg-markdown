@@ -1,8 +1,6 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include "markdown_peg.h"
 
 #define TABSTOP 4
@@ -38,7 +36,7 @@ static GString *preformat_text(char *text) {
     return(buf);
 }
 
-
+/* print_tree - print tree of elements, for debugging only. */
 static void print_tree(element * elt, int indent) {
     int i;
     char * key;
@@ -95,8 +93,8 @@ static void print_tree(element * elt, int indent) {
 
 static element * process_raw_blocks(element *input, int extensions, element *references, element *notes);
 
-/* markdown_to_gstring = convert markdown text to the output format specified
- * and return a GString. */
+/* markdown_to_gstring - convert markdown text to the output format specified.
+ * Returns a GString, which must be freed after use using g_string_free(). */
 GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     element *result;
     element *references;
@@ -113,7 +111,7 @@ GString * markdown_to_g_string(char *text, int extensions, int output_format) {
 
     result = process_raw_blocks(result, extensions, references, notes);
 
-    g_string_free(formatted_text, true);
+    g_string_free(formatted_text, TRUE);
 
     print_element_list(out, result, output_format, extensions);
 
@@ -122,6 +120,9 @@ GString * markdown_to_g_string(char *text, int extensions, int output_format) {
     return out;
 }
 
+/* process_raw_blocks - traverses an element list, replacing any RAW elements with
+ * the result of parsing them as markdown text, and recursing into the children
+ * of parent elements.  The result should be a tree of elements without any RAWs. */
 static element * process_raw_blocks(element *input, int extensions, element *references, element *notes) {
     element *current = NULL;
     element *last_child = NULL;
@@ -152,25 +153,15 @@ static element * process_raw_blocks(element *input, int extensions, element *ref
     return input;
 }
 
-/* markdown_to_string = convert markdown text to the output format specified
- * and return a null-terminated string. */
+/* markdown_to_string - convert markdown text to the output format specified.
+ * Returns a null-terminated string, which must be freed after use. */
 char * markdown_to_string(char *text, int extensions, int output_format) {
     GString *out;
     char *char_out;
     out = markdown_to_g_string(text, extensions, output_format);
     char_out = out->str;
-    g_string_free(out, false);
+    g_string_free(out, FALSE);
     return char_out;
-}
-
-/* markdown_to_stream = convert markdown text to the output format specified
- * and write output to the specified stream. */
-int markdown_to_stream(char *text, int extensions, int output_format, FILE *stream) {
-    char *out;
-    out = markdown_to_string(text, extensions, output_format);
-    fprintf(stream, "%s", out);
-    free(out);
-    return 0;
 }
 
 /* vim:set ts=4 sw=4: */
