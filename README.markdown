@@ -1,0 +1,150 @@
+What is this?
+=============
+
+This is an implementation of John Gruber's "markdown"
+(http://daringfireball.net/projects/markdown/) in C. It uses a [parsing
+expression grammar (PEG)] to define the syntax. This should allow easy
+modification and extension. It currently supports output in HTML, LaTeX,
+or groff_mm formats, and adding new formats is relatively easy.
+
+[parsing expression grammar (PEG)]:
+   http://en.wikipedia.org/wiki/Parsing_expression_grammar 
+
+It is pretty fast. A 179K text file that takes 5.7 seconds for
+Markdown.pl (v. 1.0.1) to parse takes less than 0.2 seconds for this
+markdown. It does, however, use a lot of memory (up to 4M of heap space
+while parsing the 179K file, and up to 80K for a 4K file). (Note that
+the memory leaks in earlier versions of this program have now been
+plugged.)
+
+Both a library and a standalone program are provided.
+
+peg-markdown is written and maintained by John MacFarlane (jgm on
+github), with significant contributions by Ryan Tomayko (rtomayko).
+It is released under the GPL; see LICENSE for details.
+
+Installing
+==========
+
+This program is written in portable ANSI C. It requires [glib2]
+(http://www.gtk.org/download.html). Most *nix systems will have this
+installed already. The build system requires GNU make.
+
+The other required dependency, [Ian Piumarta's peg/leg PEG parser
+generator] (http://piumarta.com/software/peg/), is included in the source
+directory. It will be built automatically. (However, it is not as portable
+as peg-markdown itself, and seems to require gcc.)
+
+To make the 'markdown' executable:
+
+    make
+
+(Or, on some systems, `gmake`.) Then, for usage instructions:
+
+    ./markdown --help
+
+To run John Gruber's Markdown 1.0.3 test suite:
+
+    make test
+
+The test suite will fail on one of the list tests.  Here's why.
+Markdown.pl encloses "item one" in the following list in `<p>` tags:
+
+    1.  item one
+        * subitem
+        * subitem
+    
+    2.  item two
+
+    3.  item three
+
+peg-markdown does not enclose "item one" in `<p>` tags unless it has a
+following blank line. This is consistent with the official markdown
+syntax description, and lets the author of the document choose whether
+`<p>` tags are desired.
+
+Extensions
+==========
+
+peg-markdown supports extensions to standard markdown syntax.
+These can be turned on using the command line flag `-x` or
+`--extensions`.  `-x` by itself turns on all extensions.  Extensions
+can also be turned on selectively, using individual command-line
+options. To see the available extensions:
+
+    ./markdown --help-extensions
+ 
+The `--smart` extension provides "smart quotes", dashes, and ellipses.
+
+The `--notes` extension provides a footnote syntax like that of
+Pandoc or PHP Markdown Extra.
+
+Using the library
+=================
+
+The library exports two functions:
+
+    GString * markdown_to_g_string(char *text, int extensions, int output_format);
+    char * markdown_to_string(char *text, int extensions, int output_format);
+
+The only difference between these is that `markdown_to_g_string` returns a
+`GString` (glib's automatically resizable string), while `markdown_to_string`
+returns a regular character pointer.  The memory allocated for these must be
+freed by the calling program, using `g_string_free()` or `free()`.
+
+`text` is the markdown-formatted text to be converted.  Note that tabs will
+be converted to spaces, using a four-space tab stop.  Character encodings are
+ignored.
+
+`extensions` is a bit-field specifying which syntax extensions should be used.
+If `extensions` is 0, no extensions will be used.  If it is `0xFFFFFF`,
+all extensions will be used.  To set extensions selectively, use the
+bitwise `&` operator and the following constants:
+
+ - `EXT_SMART` turns on smart quotes, dashes, and ellipses.
+ - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax] is used here.
+
+  [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
+
+`output_format` is either `HTML_FORMAT`, `LATEX_FORMAT`, or `GROFF_MM_FORMAT`.
+
+To use the library, include `markdown_lib.h`.  See `markdown.c` for an example.
+
+Hacking
+=======
+
+It should be pretty easy to modify the program to produce other formats
+than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
+
+  * `markdown_parser.leg` contains the grammar itself.
+
+  * `markdown_output.c` contains functions for printing the `Element`
+    structure in various output formats.
+
+  * To add an output format, add the format to `markdown_formats` in
+    `markdown_lib.h`.  Then modify `print_element` in `markdown_output.c`,
+    and add functions `print_XXXX_string`, `print_XXXX_element`, and
+    `print_XXXX_element_list`. Also add an option in the main program
+    that selects the new format. Don't forget to add it to the list of
+    formats in the usage message.
+
+  * To add syntax extensions, define them in the PEG grammar
+    (`markdown_parser.leg`), using existing extensions as a guide. New
+    inline elements will need to be added to `Inline =`; new block
+    elements will need to be added to `Block =`. (Note: the order
+    of the alternatives does matter in PEG grammars.)
+
+  * If you need to add new types of elements, modify the `keys`
+    enum in `markdown_peg.h`.
+
+  * By using `&{ }` rules one can selectively disable extensions
+    depending on command-line options. For example,
+    `&{ extension(EXT_SMART) }` succeeds only if the `EXT_SMART` bit
+    of the global `syntax_extensions` is set. Add your option to
+    `markdown_extensions` in `markdown_lib.h`, and add an option in
+    `markdown.c` to turn on your extension.
+
+  * Note: Avoid using `[^abc]` character classes in the grammar, because
+    they cause problems with non-ascii input. Instead, use: `( !'a' !'b'
+    !'c' . )`
+
