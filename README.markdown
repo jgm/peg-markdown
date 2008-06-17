@@ -1,14 +1,14 @@
 What is this?
 =============
 
-This is an implementation of John Gruber's "markdown"
-(http://daringfireball.net/projects/markdown/) in C. It uses a [parsing
-expression grammar (PEG)] to define the syntax. This should allow easy
-modification and extension. It currently supports output in HTML, LaTeX,
-or groff_mm formats, and adding new formats is relatively easy.
+This is an implementation of John Gruber's [markdown][] in C. It uses a
+[parsing expression grammar (PEG)][] to define the syntax. This should
+allow easy modification and extension. It currently supports output in
+HTML, LaTeX, or groff_mm formats, and adding new formats is relatively
+easy.
 
-[parsing expression grammar (PEG)]:
-   http://en.wikipedia.org/wiki/Parsing_expression_grammar 
+[parsing expression grammar (PEG)]: http://en.wikipedia.org/wiki/Parsing_expression_grammar 
+[markdown]: http://daringfireball.net/projects/markdown/
 
 It is pretty fast. A 179K text file that takes 5.7 seconds for
 Markdown.pl (v. 1.0.1) to parse takes less than 0.2 seconds for this
@@ -26,12 +26,12 @@ It is released under the GPL; see LICENSE for details.
 Installing
 ==========
 
-This program is written in portable ANSI C. It requires [glib2]
-(http://www.gtk.org/download.html). Most *nix systems will have this
-installed already. The build system requires GNU make.
+This program is written in portable ANSI C. It requires
+[glib2](http://www.gtk.org/download.html). Most *nix systems will have
+this installed already. The build system requires GNU make.
 
 The other required dependency, [Ian Piumarta's peg/leg PEG parser
-generator] (http://piumarta.com/software/peg/), is included in the source
+generator](http://piumarta.com/software/peg/), is included in the source
 directory. It will be built automatically. (However, it is not as portable
 as peg-markdown itself, and seems to require gcc.)
 
@@ -102,7 +102,7 @@ all extensions will be used.  To set extensions selectively, use the
 bitwise `&` operator and the following constants:
 
  - `EXT_SMART` turns on smart quotes, dashes, and ellipses.
- - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax] is used here.
+ - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax][] is used here.
 
   [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
 
