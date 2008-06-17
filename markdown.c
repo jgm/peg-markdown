@@ -26,14 +26,10 @@ static int extensions;
 
 /**********************************************************************
 
-  Main program and auxiliary functions.
-
-  Reads input from files on command line, or from stdin
-  if no arguments given.  Converts tabs to spaces using TABSTOP.
-  Parses the result for references (References), and then again for
-  conversion to HTML (Doc).  The parser actions print the converted
-  HTML, so there is no separate printing step here.  Character encodings
-  are ignored.
+  The main program is just a wrapper around the library functions in
+  markdown_lib.c.  It parses command-line options, reads the text to
+  be converted from input files or stdin, converts the text, and sends
+  the output to stdout or a file.  Character encodings are ignored.
 
  ***********************************************************************/
 
@@ -44,7 +40,7 @@ static int extensions;
                   "There is NO WARRANTY, to the extent permitted by law."
 
 /* print version and copyright information */
-void version(char *progname)
+void version(const char *progname)
 {
   printf("%s version %s\n"
          "%s\n",
@@ -56,8 +52,6 @@ void version(char *progname)
 int main(int argc, char * argv[]) {
 
     int numargs;            /* number of filename arguments */
-    FILE *inputs[argc];     /* array of file pointers for inputs */
-    int lastinp;            /* index of last file in inputs */
     int i;
 
     GString *inputbuf;
@@ -66,9 +60,10 @@ int main(int argc, char * argv[]) {
     FILE *output;
     char curchar;
     char *progname = argv[0];
-    /* the output filename is initially 0 (a.k.a. stdout) */
 
     int output_format = HTML_FORMAT;
+
+    /* Code for command-line option parsing. */
 
     static gboolean opt_version = FALSE;
     static gchar *opt_output = 0;
@@ -86,6 +81,7 @@ int main(int argc, char * argv[]) {
       { NULL }
     };
 
+    /* Options to active syntax extensions.  These appear separately in --help. */
     static GOptionEntry ext_entries[] =
     {
       { "smart", 0, 0, G_OPTION_ARG_NONE, &opt_smart, "use smart typography extension", NULL },
@@ -108,6 +104,9 @@ int main(int argc, char * argv[]) {
         g_print ("option parsing failed: %s\n", error->message);
         exit (1);
     }
+    g_option_context_free(context);
+
+    /* Process command-line options and arguments. */
 
     if (opt_version) {
         version(progname);
@@ -142,34 +141,32 @@ int main(int argc, char * argv[]) {
         perror(opt_output);
         return 1;
     }
-        
+
+    inputbuf = g_string_new("");   /* string for concatenated input */
+
+    /* Read input from stdin or input files into inputbuf */
+
     numargs = argc - 1;
     if (numargs == 0) {        /* use stdin if no files specified */
-       inputs[0] = stdin;
-       lastinp = 0;
+        while ((curchar = fgetc(stdin)) != EOF)
+            g_string_append_c(inputbuf, curchar);
+        fclose(stdin);
     }
     else {                  /* open all the files on command line */
-       for (i = 0; i < numargs; i++)
-            if ((inputs[i] = fopen(argv[i+1], "r")) == NULL) {
+       for (i = 0; i < numargs; i++) {
+            if ((input = fopen(argv[i+1], "r")) == NULL) {
                 perror(argv[i+1]);
                 exit(EXIT_FAILURE);
             }
-       lastinp = i - 1;
-    }
-
-    inputbuf = g_string_new("");
-   
-    for (i=0; i <= lastinp; i++) {
-        input = inputs[i];
-        while ((curchar = fgetc(input)) != EOF)
-            g_string_append_c(inputbuf, curchar);
-        fclose(input);
+            while ((curchar = fgetc(input)) != EOF)
+                g_string_append_c(inputbuf, curchar);
+            fclose(input);
+       }
     }
 
     markdown_to_stream(inputbuf->str, extensions, output_format, output);
     fprintf(output, "\n");
     g_string_free(inputbuf, true);
-    g_option_context_free(context);
 
     return(EXIT_SUCCESS);
 }
