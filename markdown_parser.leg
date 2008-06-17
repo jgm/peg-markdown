@@ -36,10 +36,10 @@ Block =     BlankLine*
             | Verbatim
             | Note
             | Reference
+            | HorizontalRule
             | Heading
             | OrderedList
             | BulletList
-            | HorizontalRule
             | HtmlBlock
             | Para
             | Plain )
@@ -380,41 +380,47 @@ Symbol =    < SpecialChar >
 
 Emph =      EmphStar | EmphUl
 
-EmphStar =  OneStar !Spacechar !Newline
+OneStar =       '*' !OneStar
+OneStarOpen  =  OneStar !Spacechar !Newline
+OneStarClose =  !Spacechar !Newline a:Inline !StrongStar OneStar { $$ = a; }
+
+EmphStar =  OneStarOpen
             a:StartList
-            ( EmphInlineStar { a = cons($$, a); } )+
-            OneStar
+            ( !OneStarClose Inline { a = cons($$, a); } )*
+            OneStarClose { a = cons($$, a); }
             { $$ = mk_list(EMPH, a); }
 
-EmphInlineStar  = StrongStar
-                | !(Spnl OneStar) Inline
+OneUl =       '_' !OneUl
+OneUlOpen  =  OneUl !Spacechar !Newline
+OneUlClose =  !Spacechar !Newline a:Inline !StrongUl OneUl !Alphanumeric { $$ = a; }
 
-EmphUl =    OneUl !Spacechar !Newline
+EmphUl =    OneUlOpen
             a:StartList
-            ( EmphInlineUl { a = cons($$, a); } )+
-            OneUl !Alphanumeric
+            ( !OneUlClose Inline { a = cons($$, a); } )*
+            OneUlClose { a = cons($$, a); }
             { $$ = mk_list(EMPH, a); }
-
-EmphInlineUl    =  StrongUl
-                | !(Spnl OneUl) Inline
 
 Strong = StrongStar | StrongUl
 
-StrongStar =    TwoStar !Spacechar !Newline
+TwoStar =       "**" !TwoStar
+TwoStarOpen =   TwoStar !Spacechar !Newline
+TwoStarClose =  !Spacechar !Newline a:Inline TwoStar { $$ = a; }
+
+StrongStar =    TwoStarOpen
                 a:StartList
-                ( StrongInlineStar { a = cons($$, a); } )+
-                TwoStar
+                ( !TwoStarClose Inline { a = cons($$, a); } )*
+                TwoStarClose { a = cons($$, a); }
                 { $$ = mk_list(STRONG, a); }
 
-StrongInlineStar =  !(Spnl TwoStar) Inline
+TwoUl =         "__" !TwoUl
+TwoUlOpen =     TwoUl !Spacechar !Newline
+TwoUlClose =    !Spacechar !Newline a:Inline TwoUl !Alphanumeric { $$ = a; }
 
-StrongUl =  TwoUl !Spacechar !Newline
+StrongUl =  TwoUlOpen
             a:StartList
-            ( StrongInlineUl { a = cons($$, a); } )+
-            TwoUl
+            ( !TwoUlClose Inline { a = cons($$, a); } )*
+            TwoUlClose { a = cons($$, a); }
             { $$ = mk_list(STRONG, a); }
-
-StrongInlineUl = !(Spnl TwoUl) Inline
 
 Image = '!' ( ExplicitLink | ReferenceLink )
         { $$->key = IMAGE; }
@@ -552,11 +558,6 @@ Digit = [0-9]
 HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' >
 DecEntity =     < '&' '#' [0-9]+ > ';' >
 CharEntity =    < '&' [A-Za-z0-9]+ ';' >
-
-OneStar =       '*' !OneStar
-OneUl   =       '_' !OneUl
-TwoStar =       "**" !TwoStar
-TwoUl =         "__" !TwoUl
 
 NonindentSpace =    "   " | "  " | " " | ""
 Indent =            "\t" | "    "
