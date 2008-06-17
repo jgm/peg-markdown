@@ -91,35 +91,6 @@ static void print_tree(element * elt, int indent) {
     }
 }
 
-static element * process_raw_blocks(element *input, int extensions, element *references, element *notes);
-
-/* markdown_to_gstring - convert markdown text to the output format specified.
- * Returns a GString, which must be freed after use using g_string_free(). */
-GString * markdown_to_g_string(char *text, int extensions, int output_format) {
-    element *result;
-    element *references;
-    element *notes;
-    GString *formatted_text;
-    GString *out;
-    out = g_string_new("");
-
-    formatted_text = preformat_text(text);
-
-    references = parse_references(formatted_text->str, extensions);
-    notes = parse_notes(formatted_text->str, extensions, references);
-    result = parse_markdown(formatted_text->str, extensions, references, notes);
-
-    result = process_raw_blocks(result, extensions, references, notes);
-
-    g_string_free(formatted_text, TRUE);
-
-    print_element_list(out, result, output_format, extensions);
-
-    free_element_list(result);
-    free_element_list(references);
-    return out;
-}
-
 /* process_raw_blocks - traverses an element list, replacing any RAW elements with
  * the result of parsing them as markdown text, and recursing into the children
  * of parent elements.  The result should be a tree of elements without any RAWs. */
@@ -151,6 +122,33 @@ static element * process_raw_blocks(element *input, int extensions, element *ref
         current = current->next;
     }
     return input;
+}
+
+/* markdown_to_gstring - convert markdown text to the output format specified.
+ * Returns a GString, which must be freed after use using g_string_free(). */
+GString * markdown_to_g_string(char *text, int extensions, int output_format) {
+    element *result;
+    element *references;
+    element *notes;
+    GString *formatted_text;
+    GString *out;
+    out = g_string_new("");
+
+    formatted_text = preformat_text(text);
+
+    references = parse_references(formatted_text->str, extensions);
+    notes = parse_notes(formatted_text->str, extensions, references);
+    result = parse_markdown(formatted_text->str, extensions, references, notes);
+
+    result = process_raw_blocks(result, extensions, references, notes);
+
+    g_string_free(formatted_text, TRUE);
+
+    print_element_list(out, result, output_format, extensions);
+
+    free_element_list(result);
+    free_element_list(references);
+    return out;
 }
 
 /* markdown_to_string - convert markdown text to the output format specified.
