@@ -97,7 +97,7 @@ int main(int argc, char * argv[]) {
     GOptionContext *context;
     GOptionGroup *ext_group;
 
-    context = g_option_context_new ("- convert markdown-formatted text");
+    context = g_option_context_new ("[FILE...]");
     g_option_context_add_main_entries (context, entries, NULL);
     ext_group = g_option_group_new ("extensions", "Syntax extensions", "show available syntax extensions", NULL, NULL);
     g_option_group_add_entries (ext_group, ext_entries);
