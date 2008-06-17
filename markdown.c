@@ -169,6 +169,7 @@ int main(int argc, char * argv[]) {
     markdown_to_stream(inputbuf->str, extensions, output_format, output);
     fprintf(output, "\n");
     g_string_free(inputbuf, true);
+    g_option_context_free(context);
 
     return(EXIT_SUCCESS);
 }
