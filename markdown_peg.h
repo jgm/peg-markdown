@@ -4,12 +4,6 @@
 
 extern char *strdup(const char *string);
 
-/**********************************************************************
-
-  Data Structures
-
- ***********************************************************************/
-
 /* Information (label, URL and title) for a link. */
 struct Link {
     struct Element   *label;
