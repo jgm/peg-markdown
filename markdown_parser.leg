@@ -336,6 +336,7 @@ Inline  = Str
         | LineBreak
         | Endline
         | Space
+        | UlOrStarLine
         | Strong
         | Emph
         | Image
@@ -378,11 +379,15 @@ LineBreak = "  " Endline
 Symbol =    < SpecialChar >
             { $$ = mk_str(yytext); }
 
+# This keeps the parser from getting bogged down on long strings of '*' or '_':
+UlOrStarLine =  UlLine | StarLine { $$ = mk_str(yytext); }
+StarLine =      < "****" '*'* >
+UlLine   =      < "____" '_'* >
+
 Emph =      EmphStar | EmphUl
 
-OneStar =       '*' !OneStar
-OneStarOpen  =  OneStar !Spacechar !Newline
-OneStarClose =  !Spacechar !Newline a:Inline !StrongStar OneStar { $$ = a; }
+OneStarOpen  =  !StarLine '*' !Spacechar !Newline
+OneStarClose =  !Spacechar !Newline a:Inline !StrongStar '*' { $$ = a; }
 
 EmphStar =  OneStarOpen
             a:StartList
@@ -390,9 +395,8 @@ EmphStar =  OneStarOpen
             OneStarClose { a = cons($$, a); }
             { $$ = mk_list(EMPH, a); }
 
-OneUl =       '_' !OneUl
-OneUlOpen  =  OneUl !Spacechar !Newline
-OneUlClose =  !Spacechar !Newline a:Inline !StrongUl OneUl !Alphanumeric { $$ = a; }
+OneUlOpen  =  !UlLine '_' !Spacechar !Newline
+OneUlClose =  !Spacechar !Newline a:Inline !StrongUl '_' !Alphanumeric { $$ = a; }
 
 EmphUl =    OneUlOpen
             a:StartList
@@ -402,9 +406,8 @@ EmphUl =    OneUlOpen
 
 Strong = StrongStar | StrongUl
 
-TwoStar =       "**" !TwoStar
-TwoStarOpen =   TwoStar !Spacechar !Newline
-TwoStarClose =  !Spacechar !Newline a:Inline TwoStar { $$ = a; }
+TwoStarOpen =   !StarLine "**" !Spacechar !Newline
+TwoStarClose =  !Spacechar !Newline a:Inline "**" { $$ = a; }
 
 StrongStar =    TwoStarOpen
                 a:StartList
@@ -412,9 +415,8 @@ StrongStar =    TwoStarOpen
                 TwoStarClose { a = cons($$, a); }
                 { $$ = mk_list(STRONG, a); }
 
-TwoUl =         "__" !TwoUl
-TwoUlOpen =     TwoUl !Spacechar !Newline
-TwoUlClose =    !Spacechar !Newline a:Inline TwoUl !Alphanumeric { $$ = a; }
+TwoUlOpen =     !UlLine "__" !Spacechar !Newline
+TwoUlClose =    !Spacechar !Newline a:Inline "__" !Alphanumeric { $$ = a; }
 
 StrongUl =  TwoUlOpen
             a:StartList
