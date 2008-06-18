@@ -382,8 +382,8 @@ Symbol =    < SpecialChar >
 # This keeps the parser from getting bogged down on long strings of '*' or '_',
 # or strings of '*' or '_' with space on each side:
 UlOrStarLine =  UlLine | StarLine { $$ = mk_str(yytext); }
-StarLine =      < "****" '*'* | Spacechar '*'+ Spacechar >
-UlLine   =      < "____" '_'* | Spacechar '_'+ Spacechar >
+StarLine =      < "****" '*'* | Spacechar '*'+ &Spacechar >
+UlLine   =      < "____" '_'* | Spacechar '_'+ &Spacechar >
 
 Emph =      EmphStar | EmphUl
 
