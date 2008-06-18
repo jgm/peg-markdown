@@ -335,8 +335,8 @@ Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
 Inline  = Str
         | LineBreak
         | Endline
-        | Space
         | UlOrStarLine
+        | Space
         | Strong
         | Emph
         | Image
@@ -379,10 +379,11 @@ LineBreak = "  " Endline
 Symbol =    < SpecialChar >
             { $$ = mk_str(yytext); }
 
-# This keeps the parser from getting bogged down on long strings of '*' or '_':
+# This keeps the parser from getting bogged down on long strings of '*' or '_',
+# or strings of '*' or '_' with space on each side:
 UlOrStarLine =  UlLine | StarLine { $$ = mk_str(yytext); }
-StarLine =      < "****" '*'* >
-UlLine   =      < "____" '_'* >
+StarLine =      < "****" '*'* | Spacechar '*'+ Spacechar >
+UlLine   =      < "____" '_'* | Spacechar '_'+ Spacechar >
 
 Emph =      EmphStar | EmphUl
 
