@@ -87,6 +87,7 @@ int main(int argc, char * argv[]) {
     {
       { "smart", 0, 0, G_OPTION_ARG_NONE, &opt_smart, "use smart typography extension", NULL },
       { "notes", 0, 0, G_OPTION_ARG_NONE, &opt_notes, "use notes extension", NULL },
+      { "filter-html", 0, 0, G_OPTION_ARG_NONE, &opt_notes, "filter out all raw HTML", NULL },
       { NULL }
     };
 

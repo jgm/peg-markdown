@@ -317,7 +317,13 @@ HtmlBlockInTags = HtmlBlockOpenAddress (HtmlBlockInTags | !HtmlBlockCloseAddress
 
 HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) >
             BlankLine+
-            { $$ = mk_str(yytext); $$->key = HTMLBLOCK; }
+            {   if (extension(EXT_FILTER_HTML)) {
+                    $$ = mk_list(LIST, NULL);
+                } else {
+                    $$ = mk_str(yytext);
+                    $$->key = HTMLBLOCK;
+                }
+            }
 
 HtmlBlockSelfClosing = '<' Spnl HtmlBlockType Spnl HtmlAttribute* '/' Spnl '>'
 
@@ -539,7 +545,13 @@ Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) ( 
        { $$ = mk_str(yytext); $$->key = CODE; }
 
 RawHtml =   < (HtmlComment | HtmlTag) >
-            { $$ = mk_str(yytext); $$->key = HTML; }
+            {   if (extension(EXT_FILTER_HTML)) {
+                    $$ = mk_list(LIST, NULL);
+                } else {
+                    $$ = mk_str(yytext);
+                    $$->key = HTML;
+                }
+            }
 
 BlankLine =     Sp Newline
 

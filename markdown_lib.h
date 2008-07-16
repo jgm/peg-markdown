@@ -4,7 +4,8 @@
 
 enum markdown_extensions {
     EXT_SMART            = 1,
-    EXT_NOTES            = 2
+    EXT_NOTES            = 2,
+    EXT_FILTER_HTML      = 3
 };
 
 enum markdown_formats {
