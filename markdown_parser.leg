@@ -41,6 +41,7 @@ Block =     BlankLine*
             | OrderedList
             | BulletList
             | HtmlBlock
+            | StyleBlock
             | Para
             | Plain )
 
@@ -333,6 +334,19 @@ HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fi
                 "ADDRESS" | "BLOCKQUOTE" | "CENTER" | "DIR" | "DIV" | "DL" | "FIELDSET" | "FORM" | "H1" | "H2" | "H3" |
                 "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
                 "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
+
+StyleOpen =     '<' Spnl ("style" | "STYLE") Spnl HtmlAttribute* '>'
+StyleClose =    '<' Spnl '/' ("style" | "STYLE") Spnl '>'
+InStyleTags =   StyleOpen (!StyleClose .)* StyleClose
+StyleBlock =    < InStyleTags >
+                BlankLine*
+                {   if (extension(EXT_FILTER_STYLES)) {
+                        $$ = mk_list(LIST, NULL);
+                    } else {
+                        $$ = mk_str(yytext);
+                        $$->key = HTMLBLOCK;
+                    }
+                }
 
 Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
                         | c:Endline &Inline { a = cons(c, a); } )+ Endline?
