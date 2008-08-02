@@ -3,10 +3,10 @@
 #include <glib.h>
 
 enum markdown_extensions {
-    EXT_SMART            = 1,
-    EXT_NOTES            = 2,
-    EXT_FILTER_HTML      = 3,
-    EXT_FILTER_STYLES    = 4
+    EXT_SMART            = 0x01,
+    EXT_NOTES            = 0x02,
+    EXT_FILTER_HTML      = 0x04,
+    EXT_FILTER_STYLES    = 0x08
 };
 
 enum markdown_formats {
