@@ -103,6 +103,8 @@ bitwise `&` operator and the following constants:
 
  - `EXT_SMART` turns on smart quotes, dashes, and ellipses.
  - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax][] is used here.
+ - `EXT_FILTER_HTML` filters out raw HTML (except for styles).
+ - `EXT_FILTER_STYLES` filters out styles in HTML.
 
   [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
 
