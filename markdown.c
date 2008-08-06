@@ -33,7 +33,7 @@ static int extensions;
 
  ***********************************************************************/
 
-#define VERSION "0.3"
+#define VERSION "0.4"
 #define COPYRIGHT "Copyright (c) 2008 John MacFarlane.\n" \
                   "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n" \
                   "This is free software: you are free to change and redistribute it.\n" \
@@ -42,9 +42,8 @@ static int extensions;
 /* print version and copyright information */
 void version(const char *progname)
 {
-  printf("%s version %s\n"
+  printf("peg-markdown version %s\n"
          "%s\n",
-         progname,
          VERSION,
          COPYRIGHT);
 }
