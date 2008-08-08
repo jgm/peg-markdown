@@ -734,6 +734,7 @@ static void print_groff_mm_element(GString *out, element *elt, int count) {
 
 void print_element_list(GString *out, element *elt, int format, int exts) {
     extensions = exts;
+    padded = 2;  /* set padding to 2, so no extra blank lines at beginning */
     switch (format) {
     case HTML_FORMAT:
         print_html_element_list(out, elt, false);
