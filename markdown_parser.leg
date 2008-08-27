@@ -218,12 +218,6 @@ HtmlBlockCloseH5 = '<' Spnl '/' ("h5" | "H5") Spnl '>'
 HtmlBlockOpenH6 = '<' Spnl ("h6" | "H6") Spnl HtmlAttribute* '>'
 HtmlBlockCloseH6 = '<' Spnl '/' ("h6" | "H6") Spnl '>'
 
-HtmlBlockOpenHr = '<' Spnl ("hr" | "HR") Spnl HtmlAttribute* '>'
-HtmlBlockCloseHr = '<' Spnl '/' ("hr" | "HR") Spnl '>'
-
-HtmlBlockOpenIsindex = '<' Spnl ("isindex" | "ISINDEX") Spnl HtmlAttribute* '>'
-HtmlBlockCloseIsindex = '<' Spnl '/' ("isindex" | "ISINDEX") Spnl '>'
-
 HtmlBlockOpenMenu = '<' Spnl ("menu" | "MENU") Spnl HtmlAttribute* '>'
 HtmlBlockCloseMenu = '<' Spnl '/' ("menu" | "MENU") Spnl '>'
 
@@ -295,8 +289,6 @@ HtmlBlockInTags = HtmlBlockOpenAddress (HtmlBlockInTags | !HtmlBlockCloseAddress
                 | HtmlBlockOpenH4 (HtmlBlockInTags | !HtmlBlockCloseH4 .)* HtmlBlockCloseH4
                 | HtmlBlockOpenH5 (HtmlBlockInTags | !HtmlBlockCloseH5 .)* HtmlBlockCloseH5
                 | HtmlBlockOpenH6 (HtmlBlockInTags | !HtmlBlockCloseH6 .)* HtmlBlockCloseH6
-                | HtmlBlockOpenHr (HtmlBlockInTags | !HtmlBlockCloseHr .)* HtmlBlockCloseHr
-                | HtmlBlockOpenIsindex (HtmlBlockInTags | !HtmlBlockCloseIsindex .)* HtmlBlockCloseIsindex
                 | HtmlBlockOpenMenu (HtmlBlockInTags | !HtmlBlockCloseMenu .)* HtmlBlockCloseMenu
                 | HtmlBlockOpenNoframes (HtmlBlockInTags | !HtmlBlockCloseNoframes .)* HtmlBlockCloseNoframes
                 | HtmlBlockOpenNoscript (HtmlBlockInTags | !HtmlBlockCloseNoscript .)* HtmlBlockCloseNoscript | HtmlBlockOpenOl (HtmlBlockInTags | !HtmlBlockCloseOl .)* HtmlBlockCloseOl
