@@ -615,7 +615,7 @@ Dash = EmDash | EnDash
 EnDash = '-' &Digit
          { $$ = mk_element(ENDASH); }
 
-EmDash = Sp ("---" | "--") Sp
+EmDash = ("---" | "--")
          { $$ = mk_element(EMDASH); }
 
 SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
