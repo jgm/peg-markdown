@@ -102,37 +102,36 @@ HorizontalRule = NonindentSpace
                  Sp Newline BlankLine+
                  { $$ = mk_element(HRULE); }
 
-Bullet = NonindentSpace ('+' | '*' | '-') Spacechar+
+Bullet = !HorizontalRule NonindentSpace ('+' | '*' | '-') Spacechar+
 
-BulletList = BulletListTight | BulletListLoose
+BulletList = &Bullet (ListTight | ListLoose)
+             { $$->key = BULLETLIST; }
 
-BulletListTight = a:StartList
-                  ( BulletListItem { a = cons($$, a); } )+
-                  BlankLine* !BulletListLoose
-                  { $$ = mk_list(BULLETLIST, a); }
+ListTight = a:StartList
+            ( ListItem { a = cons($$, a); } )+
+            BlankLine* !ListLoose
+            { $$ = mk_list(LIST, a); }
 
-BulletListLoose = a:StartList
-                  ( b:BulletListItem BlankLine*
-                    {   element *li;
-                        li = b->children;
-                        li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
-                        strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        a = cons(b, a);
-                    } )+
-                  { $$ = mk_list(BULLETLIST, a); }
+ListLoose = a:StartList
+            ( b:ListItem BlankLine*
+              {   element *li;
+                  li = b->children;
+                  li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
+                  strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
+                  a = cons(b, a);
+              } )+
+            { $$ = mk_list(LIST, a); }
 
-BulletListItem = !HorizontalRule &Bullet ListItem
-
-ListItem =       ( Bullet | Enumerator )
-                 a:StartList
-                 ListBlock { a = cons($$, a); }
-                 ( ListContinuationBlock { a = cons($$, a); } )*
-                 {  element *raw;
-                    raw = mk_str_from_list(a, false);
-                    raw->key = RAW;
-                    $$ = mk_element(LISTITEM);
-                    $$->children = raw;
-                 }
+ListItem =  ( Bullet | Enumerator )
+            a:StartList
+            ListBlock { a = cons($$, a); }
+            ( ListContinuationBlock { a = cons($$, a); } )*
+            {  element *raw;
+               raw = mk_str_from_list(a, false);
+               raw->key = RAW;
+               $$ = mk_element(LISTITEM);
+               $$->children = raw;
+            }
 
 ListBlock = a:StartList
             Line { a = cons($$, a); }
@@ -150,27 +149,12 @@ ListContinuationBlock = a:StartList
 
 Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 
-OrderedList = OrderedListTight | OrderedListLoose
+OrderedList = &Enumerator (ListTight | ListLoose)
+              { $$->key = ORDEREDLIST; }
 
-OrderedListTight = a:StartList
-                  ( OrderedListItem { a = cons($$, a); } )+
-                  BlankLine* !OrderedListLoose
-                  { $$ = mk_list(ORDEREDLIST, a); }
-
-OrderedListLoose = a:StartList
-                  ( b:OrderedListItem BlankLine*
-                    {   element *li;
-                        li = b->children;
-                        li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
-                        strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
-                        a = cons(b, a);
-                    } )+
-                  { $$ = mk_list(ORDEREDLIST, a); }
-
-OrderedListItem =   !HorizontalRule &Enumerator ListItem
-
-ListBlockLine = !( Indent? ( BulletListItem | OrderedListItem ) )
+ListBlockLine = !( Indent? ListItem )
                 !BlankLine
+                !HorizontalRule
                 OptionallyIndentedLine
 
 # Parsers for different kinds of block-level HTML content.
