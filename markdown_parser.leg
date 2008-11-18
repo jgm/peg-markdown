@@ -329,7 +329,6 @@ Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
             { $$ = mk_list(LIST, a); }
 
 Inline  = Str
-        | LineBreak
         | Endline
         | UlOrStarLine
         | Space
@@ -359,7 +358,7 @@ EscapedChar =   '\\' !Newline < . >
 Entity =    ( HexEntity | DecEntity | CharEntity )
             { $$ = mk_str(yytext); $$->key = HTML; }
 
-Endline =   TerminalEndline | NormalEndline
+Endline =   LineBreak | TerminalEndline | NormalEndline
 
 NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
                   !(Line ("===" '='* | "---" '-'*) Newline)
@@ -369,7 +368,7 @@ NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
 TerminalEndline = Sp Newline Eof
                   { $$ = NULL; }
 
-LineBreak = "  " Endline
+LineBreak = "  " NormalEndline
             { $$ = mk_element(LINEBREAK); }
 
 Symbol =    < SpecialChar >

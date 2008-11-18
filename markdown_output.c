@@ -113,7 +113,7 @@ static void print_html_element(GString *out, element *elt, bool obfuscate) {
         g_string_append_printf(out, "%s", elt->contents.str);
         break;
     case LINEBREAK:
-        g_string_append_printf(out, "<br/>");
+        g_string_append_printf(out, "<br/>\n");
         break;
     case STR:
         print_html_string(out, elt->contents.str, obfuscate);
@@ -564,7 +564,7 @@ static void print_groff_mm_element(GString *out, element *elt, int count) {
         break;
     case LINEBREAK:
         pad(out, 1);
-        g_string_append_printf(out, ".br");
+        g_string_append_printf(out, ".br\n");
         padded = 0;
         break;
     case STR:
