@@ -26,6 +26,9 @@ It is released under the GPL; see LICENSE for details.
 Installing
 ==========
 
+On a linux or unix-based system
+-------------------------------
+
 This program is written in portable ANSI C. It requires
 [glib2](http://www.gtk.org/download.html). Most *nix systems will have
 this installed already. The build system requires GNU make.
@@ -62,6 +65,64 @@ peg-markdown does not enclose "item one" in `<p>` tags unless it has a
 following blank line. This is consistent with the official markdown
 syntax description, and lets the author of the document choose whether
 `<p>` tags are desired.
+
+Cross-compiling for Windows with MinGW on a linux box
+-----------------------------------------------------
+
+Prerequisites:
+
+*   Linux system with MinGW cross compiler For Ubuntu:
+
+        sudo apt-get install mingw32
+
+*   [Windows glib-2.0 binary & development files](http://www.gtk.org/download-windows.html).
+    Unzip files into cross-compiler directory tree (e.g., `/usr/i586-mingw32msvc`).
+
+Steps:
+
+1.  Create the markdown parser using Linux-compiled `leg` from peg-0.1.4:
+
+        ./peg-0.1.4/leg markdown_parser.leg >markdown_parser.c
+
+    (Note: The same thing could be accomplished by cross-compiling leg,
+    executing it on Windows, and copying the resulting C file to the Linux
+    cross-compiler host.)
+
+2   Run the cross compiler with include flag for the Windows glib-2.0 headers:
+    for example,
+
+        /usr/bin/i586-mingw32msvc-cc -c \
+        -I/usr/i586-mingw32msvc/include/glib-2.0 \
+        -I/usr/i586-mingw32msvc/lib/glib-2.0/include -Wall -O3 -ansi markdown*.c
+
+3.  Link against Windows glib-2.0 headers: for example,
+
+        /usr/bin/i586-mingw32msvc-cc markdown*.o \
+        -Wl,-L/usr/i586-mingw32msvc/lib/glib,--dy,--warn-unresolved-symbols,-lglib-2.0 \
+        -o markdown.exe
+
+The resulting executable depends on the glib dll file, so be sure to
+load the glib binary on the Windows host.
+
+Compiling with MinGW on Windows
+-------------------------------
+
+These directions assume that MinGW is installed in `c:\MinGW` and glib-2.0
+is installed in the MinGW directory hierarchy (with the mingw bin directory
+in the system path).
+
+Unzip peg-markdown in a temp directory. From the directory with the
+peg-markdown source, execute:
+
+    cd peg-0.1.4
+    for %i in (*.c) do @gcc -g -Wall -O3 -DNDEBUG -c -o %~ni.o %i
+    gcc -o leg.exe leg.o tree.o compile.o
+    cd ..
+    peg-0.1.4\leg.exe markdown_parser.leg >markdown_parser.c
+    @for %i in (markdown*.c) do @gcc -mms-bitfields -Ic:/MinGW/include/glib-2.0 -Ic:/MinGW/lib/glib-2.0/include -c -o %~ni.o %i
+    gcc -O3 -Lc:/MinGW/lib/glib-2.0 -lglib-2.0 -lintl markdown.o markdown_lib.o markdown_output.o markdown_parser.o -o markdown.exe -Wl,--dy,--warn-unresolved-symbols,-lglib-2.0,-Lc:/MinGW/lib/glib-2.0,-lglib-2.0,-lintl
+
+(Windows instructions courtesy of Matt Wolf.)
 
 Extensions
 ==========
