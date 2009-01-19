@@ -126,11 +126,15 @@ static bool extension(int ext) {
 /* match_inlines - returns true if inline lists match (case-insensitive...) */
 static bool match_inlines(element *l1, element *l2) {
     while (l1 != NULL && l2 != NULL) {
-      if (l1->key != l2->key)
+        if (l1->key != l2->key)
             return false;
         switch (l1->key) {
         case SPACE:
         case LINEBREAK:
+        case ELLIPSIS:
+        case EMDASH:
+        case ENDASH:
+        case APOSTROPHE:
             break;
         case CODE:
         case STR:
@@ -142,6 +146,8 @@ static bool match_inlines(element *l1, element *l2) {
         case EMPH:
         case STRONG:
         case LIST:
+        case SINGLEQUOTED:
+        case DOUBLEQUOTED:
             if (match_inlines(l1->children, l2->children))
                 break;
             else
