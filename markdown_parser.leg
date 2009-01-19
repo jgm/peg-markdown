@@ -152,7 +152,7 @@ Enumerator = NonindentSpace [0-9]+ '.' Spacechar+
 OrderedList = &Enumerator (ListTight | ListLoose)
               { $$->key = ORDEREDLIST; }
 
-ListBlockLine = !( Indent? ListItem )
+ListBlockLine = !( Indent? (Bullet | Enumerator) )
                 !BlankLine
                 !HorizontalRule
                 OptionallyIndentedLine
