@@ -109,7 +109,7 @@ BulletList = &Bullet (ListTight | ListLoose)
 
 ListTight = a:StartList
             ( ListItem { a = cons($$, a); } )+
-            BlankLine* !ListLoose
+            BlankLine* !(Bullet | Enumerator)
             { $$ = mk_list(LIST, a); }
 
 ListLoose = a:StartList
