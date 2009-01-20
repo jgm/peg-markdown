@@ -360,7 +360,7 @@ Entity =    ( HexEntity | DecEntity | CharEntity )
 
 Endline =   LineBreak | TerminalEndline | NormalEndline
 
-NormalEndline =   Sp Newline !BlankLine !BlockQuote !AtxStart
+NormalEndline =   Sp Newline !BlankLine !'>' !AtxStart
                   !(Line ("===" '='* | "---" '-'*) Newline)
                   { $$ = mk_str("\n");
                     $$->key = SPACE; }
