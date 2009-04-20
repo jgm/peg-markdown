@@ -88,7 +88,7 @@ Steps:
     executing it on Windows, and copying the resulting C file to the Linux
     cross-compiler host.)
 
-2   Run the cross compiler with include flag for the Windows glib-2.0 headers:
+2.  Run the cross compiler with include flag for the Windows glib-2.0 headers:
     for example,
 
         /usr/bin/i586-mingw32msvc-cc -c \
