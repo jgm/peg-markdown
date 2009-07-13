@@ -21,7 +21,8 @@ Both a library and a standalone program are provided.
 
 peg-markdown is written and maintained by John MacFarlane (jgm on
 github), with significant contributions by Ryan Tomayko (rtomayko).
-It is released under the GPL; see LICENSE for details.
+It is released under both the GPL and the MIT license; see LICENSE for
+details.
 
 Installing
 ==========
