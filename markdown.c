@@ -33,8 +33,8 @@ static int extensions;
 
  ***********************************************************************/
 
-#define VERSION "0.4.5"
-#define COPYRIGHT "Copyright (c) 2008 John MacFarlane.  License GPLv2+ or MIT.\n" \
+#define VERSION "0.4.6"
+#define COPYRIGHT "Copyright (c) 2008-2009 John MacFarlane.  License GPLv2+ or MIT.\n" \
                   "This is free software: you are free to change and redistribute it.\n" \
                   "There is NO WARRANTY, to the extent permitted by law."
 
