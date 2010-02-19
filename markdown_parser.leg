@@ -545,7 +545,7 @@ RawHtml =   < (HtmlComment | HtmlTag) >
 BlankLine =     Sp Newline
 
 Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
-HtmlAttribute = (Alphanumeric | '-')+ Spnl ('=' Spnl (Quoted | Nonspacechar+))? Spnl
+HtmlAttribute = (Alphanumeric | '-')+ Spnl ('=' Spnl (Quoted | (!'>' Nonspacechar)+))? Spnl
 HtmlComment =   "<!--" (!"-->" .)* "-->"
 HtmlTag =       '<' Spnl '/'? Alphanumeric+ Spnl HtmlAttribute* '/'? Spnl '>'
 Eof =           !.
