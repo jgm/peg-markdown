@@ -519,11 +519,11 @@ References = a:StartList
              ( b:Reference { a = cons(b, a); } | SkipBlock )*
              { references = reverse(a); }
 
-Ticks1 = "`"
-Ticks2 = "``"
-Ticks3 = "```"
-Ticks4 = "````"
-Ticks5 = "`````"
+Ticks1 = "`" !'`'
+Ticks2 = "``" !'`'
+Ticks3 = "```" !'`'
+Ticks4 = "````" !'`'
+Ticks5 = "`````" !'`'
 
 Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks1
        | Ticks2 Sp < ( ( !'`' Nonspacechar )+ | !Ticks2 '`'+ | !( Sp Ticks2 ) ( Spacechar | Newline !BlankLine ) )+ > Sp Ticks2
