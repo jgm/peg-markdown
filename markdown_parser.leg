@@ -471,9 +471,9 @@ SourceContents = ( ( !'(' !')' !'>' Nonspacechar )+ | '(' SourceContents ')')*
 Title = ( TitleSingle | TitleDouble | < "" > )
         { $$ = mk_str(yytext); }
 
-TitleSingle = '\'' < ( !( '\'' Sp ( ')' | Newline ) ) !Newline . )* > '\''
+TitleSingle = '\'' < ( !( '\'' Sp ( ')' | Newline ) ) . )* > '\''
 
-TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) !Newline . )* > '"'
+TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) . )* > '"'
 
 AutoLink = AutoLinkUrl | AutoLinkEmail
 
