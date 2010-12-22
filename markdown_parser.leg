@@ -355,7 +355,7 @@ Space = Spacechar+
         { $$ = mk_str(" ");
           $$->key = SPACE; }
 
-Str = < NormalChar (NormalChar | '_'+ &NormalChar)* >
+Str = < NormalChar (NormalChar | '_'+ &Alphanumeric)* >
         { $$ = mk_str(yytext); }
 
 EscapedChar =   '\\' !Newline < [-\\`|*_{}[\]()#+.!><] >
