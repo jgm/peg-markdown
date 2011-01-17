@@ -551,9 +551,9 @@ RawHtml =   < (HtmlComment | HtmlTag) >
 BlankLine =     Sp Newline
 
 Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
-HtmlAttribute = (Alphanumeric | '-')+ Spnl ('=' Spnl (Quoted | (!'>' Nonspacechar)+))? Spnl
+HtmlAttribute = (AlphanumericAscii | '-')+ Spnl ('=' Spnl (Quoted | (!'>' Nonspacechar)+))? Spnl
 HtmlComment =   "<!--" (!"-->" .)* "-->"
-HtmlTag =       '<' Spnl '/'? Alphanumeric+ Spnl HtmlAttribute* '/'? Spnl '>'
+HtmlTag =       '<' Spnl '/'? AlphanumericAscii+ Spnl HtmlAttribute* '/'? Spnl '>'
 Eof =           !.
 Spacechar =     ' ' | '\t'
 Nonspacechar =  !Spacechar !Newline .
@@ -562,7 +562,9 @@ Sp =            Spacechar*
 Spnl =          Sp (Newline Sp)?
 SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '<' | '!' | '\\' | ExtendedSpecialChar
 NormalChar =    !( SpecialChar | Spacechar | Newline ) .
-Alphanumeric =  [A-Za-z0-9]
+NonAlphanumeric = [\000-\057\072-\100\133-\140\173-\177]
+Alphanumeric = [0-9A-Za-z\178-\377]
+AlphanumericAscii = [A-Za-z0-9]
 Digit = [0-9]
 
 HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' >
@@ -609,7 +611,7 @@ EmDash = ("---" | "--")
 
 SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
 
-SingleQuoteEnd = '\'' !Alphanumeric
+SingleQuoteEnd = '\'' &NonAlphanumeric
 
 SingleQuoted = SingleQuoteStart
                a:StartList
