@@ -611,7 +611,7 @@ EmDash = ("---" | "--")
 
 SingleQuoteStart = '\'' ![)!\],.;:-? \t\n] !( ( "s" | "t" | "m" | "ve" | "ll" | "re" ) !Alphanumeric )
 
-SingleQuoteEnd = '\'' &NonAlphanumeric
+SingleQuoteEnd = '\'' !Alphanumeric
 
 SingleQuoted = SingleQuoteStart
                a:StartList
