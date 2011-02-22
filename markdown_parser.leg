@@ -67,11 +67,11 @@ SetextBottom1 = "===" '='* Newline
 SetextBottom2 = "---" '-'* Newline
 
 SetextHeading1 =  &(RawLine SetextBottom1)
-                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Newline
+                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
                   SetextBottom1 { $$ = mk_list(H1, a); }
 
 SetextHeading2 =  &(RawLine SetextBottom2)
-                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Newline
+                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
                   SetextBottom2 { $$ = mk_list(H2, a); }
 
 Heading = AtxHeading | SetextHeading
