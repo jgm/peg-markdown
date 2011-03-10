@@ -74,7 +74,7 @@ SetextHeading2 =  &(RawLine SetextBottom2)
                   a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
                   SetextBottom2 { $$ = mk_list(H2, a); }
 
-Heading = AtxHeading | SetextHeading
+Heading = SetextHeading | AtxHeading
 
 BlockQuote = a:BlockQuoteRaw
              {  $$ = mk_element(BLOCKQUOTE);
