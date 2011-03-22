@@ -548,7 +548,7 @@ AutoLinkEmail = '<' < [-A-Za-z0-9+_]+ '@' ( !Newline !'>' . )+ > '>'
                     free(mailto);
                 }
 
-Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc Spnl t:RefTitle BlankLine*
+Reference = NonindentSpace !"[]" l:Label ':' Spnl s:RefSrc t:RefTitle BlankLine+
             { $$ = mk_link(l->children, s->contents.str, t->contents.str);
               free_element(s);
               free_element(t);
@@ -570,11 +570,11 @@ RefTitle =  ( RefTitleSingle | RefTitleDouble | RefTitleParens | EmptyTitle )
 
 EmptyTitle = < "" >
 
-RefTitleSingle = '\'' < ( !( '\'' Sp Newline | Newline ) . )* > '\''
+RefTitleSingle = Spnl '\'' < ( !( '\'' Sp Newline | Newline ) . )* > '\''
 
-RefTitleDouble = '"' < ( !('"' Sp Newline | Newline) . )* > '"'
+RefTitleDouble = Spnl '"' < ( !('"' Sp Newline | Newline) . )* > '"'
 
-RefTitleParens = '(' < ( !(')' Sp Newline | Newline) . )* > ')'
+RefTitleParens = Spnl '(' < ( !(')' Sp Newline | Newline) . )* > ')'
 
 References = a:StartList
              ( b:Reference { a = cons(b, a); } | SkipBlock )*
