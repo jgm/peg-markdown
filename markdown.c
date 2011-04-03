@@ -102,7 +102,7 @@ int main(int argc, char * argv[]) {
     g_option_group_add_entries (ext_group, ext_entries);
     g_option_context_add_group (context, ext_group);
     g_option_context_set_description (context, "Converts text in specified files (or stdin) from markdown to FORMAT.\n"
-                                               "Available FORMATs:  html, latex, groff-mm");
+                                               "Available FORMATs:  html, latex, groff-mm, odf");
     if (!g_option_context_parse (context, &argc, &argv, &error)) {
         g_print ("option parsing failed: %s\n", error->message);
         exit (1);
@@ -136,6 +136,8 @@ int main(int argc, char * argv[]) {
         output_format = LATEX_FORMAT;
     else if (strcmp(opt_to, "groff-mm") == 0)
         output_format = GROFF_MM_FORMAT;
+    else if (strcmp(opt_to, "odf") == 0)
+        output_format = ODF_FORMAT;
     else {
         fprintf(stderr, "%s: Unknown output format '%s'\n", progname, opt_to);
         exit(EXIT_FAILURE);
