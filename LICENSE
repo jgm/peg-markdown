@@ -1,5 +1,6 @@
 markdown in c, implemented using PEG grammar
-Copyright (c) 2008 John MacFarlane
+Copyright (c) 2008-2011 John MacFarlane
+ODF output code (c) 2011 Fletcher T. Penney
 
 peg-markdown is released under both the GPL and MIT licenses.
 You may pick the license that best fits your needs.

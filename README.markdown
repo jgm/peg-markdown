@@ -4,8 +4,8 @@ What is this?
 This is an implementation of John Gruber's [markdown][] in C. It uses a
 [parsing expression grammar (PEG)][] to define the syntax. This should
 allow easy modification and extension. It currently supports output in
-HTML, LaTeX, or groff_mm formats, and adding new formats is relatively
-easy.
+HTML, LaTeX, ODF, or groff_mm formats, and adding new formats is
+relatively easy.
 
 [parsing expression grammar (PEG)]: http://en.wikipedia.org/wiki/Parsing_expression_grammar 
 [markdown]: http://daringfireball.net/projects/markdown/
@@ -170,15 +170,16 @@ bitwise `&` operator and the following constants:
 
   [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
 
-`output_format` is either `HTML_FORMAT`, `LATEX_FORMAT`, or `GROFF_MM_FORMAT`.
+`output_format` is either `HTML_FORMAT`, `LATEX_FORMAT`, `ODF_FORMAT`,
+or `GROFF_MM_FORMAT`.
 
 To use the library, include `markdown_lib.h`.  See `markdown.c` for an example.
 
 Hacking
 =======
 
-It should be pretty easy to modify the program to produce other formats
-than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
+It should be pretty easy to modify the program to produce other formats,
+and to parse syntax extensions.  A quick guide:
 
   * `markdown_parser.leg` contains the grammar itself.
 
@@ -211,4 +212,9 @@ than HTML or LaTeX, and to parse syntax extensions.  A quick guide:
   * Note: Avoid using `[^abc]` character classes in the grammar, because
     they cause problems with non-ascii input. Instead, use: `( !'a' !'b'
     !'c' . )`
+
+Acknowledgements
+================
+
+Support for ODF output was added by Fletcher T. Penney.
 
