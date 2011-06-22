@@ -671,7 +671,7 @@ EnDash = '-' &Digit
 EmDash = ("---" | "--")
          { $$ = mk_element(EMDASH); }
 
-SingleQuoteStart = '\''
+SingleQuoteStart = '\'' !(Spacechar | Newline)
 
 SingleQuoteEnd = '\'' !Alphanumeric
 
