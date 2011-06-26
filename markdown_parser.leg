@@ -310,7 +310,7 @@ HtmlBlockTr = HtmlBlockOpenTr (HtmlBlockTr | !HtmlBlockCloseTr .)* HtmlBlockClos
 
 HtmlBlockOpenScript = '<' Spnl ("script" | "SCRIPT") Spnl HtmlAttribute* '>'
 HtmlBlockCloseScript = '<' Spnl '/' ("script" | "SCRIPT") Spnl '>'
-HtmlBlockScript = HtmlBlockOpenScript (HtmlBlockScript | !HtmlBlockCloseScript .)* HtmlBlockCloseScript
+HtmlBlockScript = HtmlBlockOpenScript (!HtmlBlockCloseScript .)* HtmlBlockCloseScript
 
 
 HtmlBlockInTags = HtmlBlockAddress
