@@ -601,7 +601,7 @@ Code = ( Ticks1 Sp < ( ( !'`' Nonspacechar )+ | !Ticks1 '`'+ | !( Sp Ticks1 ) ( 
        )
        { $$ = mk_str(yytext); $$->key = CODE; }
 
-RawHtml =   < (HtmlComment | HtmlTag) >
+RawHtml =   < (HtmlComment | HtmlBlockScript | HtmlTag) >
             {   if (extension(EXT_FILTER_HTML)) {
                     $$ = mk_list(LIST, NULL);
                 } else {
