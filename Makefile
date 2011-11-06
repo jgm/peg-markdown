@@ -3,10 +3,15 @@ ALL : markdown
 PROGRAM=markdown
 CFLAGS ?= -Wall -O3 -ansi
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o
-PEGDIR=peg-0.1.4
+PEGDIR_ORIG=peg-0.1.4
+PEGDIR=peg
 LEG=$(PEGDIR)/leg
 
-$(LEG):
+$(PEGDIR):
+	cp -r $(PEGDIR_ORIG) $(PEGDIR) ; \
+	patch -p1 < peg-memory-fix.patch
+
+$(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)
 
 %.o : %.c markdown_peg.h
@@ -21,11 +26,10 @@ markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.
 .PHONY: clean test
 
 clean:
-	rm -f markdown_parser.c $(PROGRAM) $(OBJS); \
-	make -C $(PEGDIR) clean
+	rm -f markdown_parser.c $(PROGRAM) $(OBJS)
 
 distclean: clean
-	make -C $(PEGDIR) spotless
+	rm -rf $(PEGDIR)
 
 test: $(PROGRAM)
 	cd MarkdownTest_1.0.3; \
