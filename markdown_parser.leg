@@ -647,8 +647,10 @@ Line =  RawLine
         { $$ = mk_str(yytext); }
 RawLine = ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
 
-SkipBlock = ( !BlankLine RawLine )+ BlankLine*
+SkipBlock = HtmlBlock
+          | ( !'#' !SetextBottom1 !SetextBottom2 !BlankLine RawLine )+ BlankLine*
           | BlankLine+
+          | ( &('#' | SetextBottom1 | SetextBottom2) RawLine )
 
 # Syntax extensions
 
