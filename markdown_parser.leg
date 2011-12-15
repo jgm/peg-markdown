@@ -445,7 +445,7 @@ UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
 Emph =      EmphStar | EmphUl
 
 OneStarOpen  =  !StarLine '*' !Spacechar !Newline
-OneStarClose =  !Spacechar !Newline a:Inline !StrongStar '*' { $$ = a; }
+OneStarClose =  !Spacechar !Newline a:Inline '*' { $$ = a; }
 
 EmphStar =  OneStarOpen
             a:StartList
