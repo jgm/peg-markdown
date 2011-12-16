@@ -454,7 +454,7 @@ EmphStar =  OneStarOpen
             { $$ = mk_list(EMPH, a); }
 
 OneUlOpen  =  !UlLine '_' !Spacechar !Newline
-OneUlClose =  !Spacechar !Newline a:Inline !StrongUl '_' !Alphanumeric { $$ = a; }
+OneUlClose =  !Spacechar !Newline a:Inline '_' !Alphanumeric { $$ = a; }
 
 EmphUl =    OneUlOpen
             a:StartList
