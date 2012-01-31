@@ -116,14 +116,7 @@ Unzip peg-markdown in a temp directory. From the directory with the
 peg-markdown source, execute:
 
     cd peg-0.1.4
-    for %i in (*.c) do @gcc -g -Wall -O3 -DNDEBUG -c -o %~ni.o %i
-    gcc -o leg.exe leg.o tree.o compile.o
-    cd ..
-    peg-0.1.4\leg.exe markdown_parser.leg >markdown_parser.c
-    @for %i in (markdown*.c) do @gcc -mms-bitfields -Ic:/MinGW/include/glib-2.0 -Ic:/MinGW/lib/glib-2.0/include -c -o %~ni.o %i
-    gcc -O3 -Lc:/MinGW/lib/glib-2.0 -lglib-2.0 -lintl markdown.o markdown_lib.o markdown_output.o markdown_parser.o -o markdown.exe -Wl,--dy,--warn-unresolved-symbols,-lglib-2.0,-Lc:/MinGW/lib/glib-2.0,-lglib-2.0,-lintl
-
-(Windows instructions courtesy of Matt Wolf.)
+    make PKG_CONFIG=c:/path/to/glib/bin/pkg-config.exe
 
 Extensions
 ==========
