@@ -1,16 +1,23 @@
+uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+ifneq (,$(findstring MINGW,$(uname_S)))
+	X = .exe
+endif
 
-PROGRAM=markdown
+export X
+
+PROGRAM=markdown$(X)
 CFLAGS ?= -Wall -O3 -ansi
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o
 PEGDIR_ORIG=peg-0.1.4
 PEGDIR=peg
-LEG=$(PEGDIR)/leg
+LEG=$(PEGDIR)/leg$(X)
 
 ALL : $(PROGRAM)
 
 $(PEGDIR):
 	cp -r $(PEGDIR_ORIG) $(PEGDIR) ; \
-	patch -p1 < peg-memory-fix.patch
+	patch -p1 < peg-memory-fix.patch ; \
+	patch -p1 < peg-exe-ext.patch
 
 $(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)

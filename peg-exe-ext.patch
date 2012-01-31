@@ -1,0 +1,75 @@
+2271467 peg/Makefile: use variables for binary file names (Tay Ray Chuan, Tue Jan 31 15:33:20 2012 +0800)
+diff --git a/peg-0.1.4/Makefile b/peg-0.1.4/Makefile
+index bc45e64..712e57e 100644
+--- a/peg-0.1.4/Makefile
++++ b/peg-0.1.4/Makefile
+@@ -1,16 +1,19 @@
++PEG = peg$(X)
++LEG = leg$(X)
++
+ CFLAGS = -g -Wall $(OFLAGS) $(XFLAGS)
+ OFLAGS = -O3 -DNDEBUG
+ #OFLAGS = -pg
+ 
+ OBJS = tree.o compile.o
+ 
+-all : peg leg
++all : $(PEG) $(LEG)
+ 
+-peg : peg.o $(OBJS)
++$(PEG) : peg.o $(OBJS)
+ 	$(CC) $(CFLAGS) -o $@-new peg.o $(OBJS)
+ 	mv $@-new $@
+ 
+-leg : leg.o $(OBJS)
++$(LEG) : leg.o $(OBJS)
+ 	$(CC) $(CFLAGS) -o $@-new leg.o $(OBJS)
+ 	mv $@-new $@
+ 
+@@ -18,28 +21,28 @@ ROOT	=
+ PREFIX	= /usr/local
+ BINDIR	= $(ROOT)$(PREFIX)/bin
+ 
+-install : $(BINDIR)/peg $(BINDIR)/leg
++install : $(BINDIR)/$(PEG) $(BINDIR)/$(LEG)
+ 
+ $(BINDIR)/% : %
+ 	cp -p $< $@
+ 	strip $@
+ 
+ uninstall : .FORCE
+-	rm -f $(BINDIR)/peg
+-	rm -f $(BINDIR)/leg
++	rm -f $(BINDIR)/$(PEG)
++	rm -f $(BINDIR)/$(LEG)
+ 
+ peg.o : peg.c peg.peg-c
+ 
+ %.peg-c : %.peg
+-#	./peg -o $@ $<
++#	./$(PEG) -o $@ $<
+ 
+ leg.o : leg.c
+ 
+ leg.c : leg.leg
+-#	./leg -o $@ $<
++#	./$(LEG) -o $@ $<
+ 
+-check : peg .FORCE
+-	./peg < peg.peg > peg.out
++check : $(PEG) .FORCE
++	./$(PEG) < peg.peg > peg.out
+ 	diff peg.peg-c peg.out
+ 	rm peg.out
+ 
+@@ -51,8 +54,8 @@ clean : .FORCE
+ 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
+ 
+ spotless : clean .FORCE
+-	rm -f peg
+-	rm -f leg
++	rm -f $(PEG)
++	rm -f $(LEG)
+ 	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
+ 
+ .FORCE :
