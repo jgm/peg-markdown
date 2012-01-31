@@ -97,9 +97,9 @@ static void print_tree(element * elt, int indent) {
             default:                 key = "?";
         }
         if ( elt->key == STR ) {
-            fprintf(stderr, "0x%x: %s   '%s'\n", (int)elt, key, elt->contents.str);
+            fprintf(stderr, "0x%p: %s   '%s'\n", (void *)elt, key, elt->contents.str);
         } else {
-            fprintf(stderr, "0x%x: %s\n", (int)elt, key);
+            fprintf(stderr, "0x%p: %s\n", (void *)elt, key);
         }
         if (elt->children)
             print_tree(elt->children, indent + 4);
