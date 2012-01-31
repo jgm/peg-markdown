@@ -27,7 +27,7 @@ $(LEG): $(PEGDIR)
 	$(CC) -c `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -o $@ $<
 
 $(PROGRAM) : markdown.c $(OBJS)
-	$(CC) `$(PKG_CONFIG) --cflags glib-2.0` `$(PKG_CONFIG) --libs glib-2.0` $(CFLAGS) -o $@ $(OBJS) $<
+	$(CC) `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -o $@ $< $(OBJS) `$(PKG_CONFIG) --libs glib-2.0`
 
 markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.c utility_functions.c
 	$(LEG) -o $@ $<
@@ -46,4 +46,3 @@ test: $(PROGRAM)
 
 leak-check: $(PROGRAM)
 	valgrind --leak-check=full ./markdown README
-
