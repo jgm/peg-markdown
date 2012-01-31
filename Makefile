@@ -1,4 +1,3 @@
-ALL : markdown
 
 PROGRAM=markdown
 CFLAGS ?= -Wall -O3 -ansi
@@ -6,6 +5,8 @@ OBJS=markdown_parser.o markdown_output.o markdown_lib.o
 PEGDIR_ORIG=peg-0.1.4
 PEGDIR=peg
 LEG=$(PEGDIR)/leg
+
+ALL : $(PROGRAM)
 
 $(PEGDIR):
 	cp -r $(PEGDIR_ORIG) $(PEGDIR) ; \
