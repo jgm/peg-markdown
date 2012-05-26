@@ -10,10 +10,10 @@ enum markdown_extensions {
 };
 
 enum markdown_formats {
-    HTML_FORMAT,
-    LATEX_FORMAT,
-    GROFF_MM_FORMAT,
-    ODF_FORMAT
+    HTML_FORMAT = 0,
+    LATEX_FORMAT = 1,
+    GROFF_MM_FORMAT = 2,
+    ODF_FORMAT = 3
 };
 
 GString * markdown_to_g_string(char *text, int extensions, int output_format);
