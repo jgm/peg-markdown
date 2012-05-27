@@ -1,7 +1,11 @@
 /* utility_functions.c - List manipulation functions, element
  * constructors, and macro definitions for leg markdown parser. */
 
-extern int strcasecmp(const char *string1, const char *string2);
+/* extern int strcasecmp(const char *string1, const char *string2); */
+
+#ifdef WIN32
+#define strcasecmp _stricmp
+#endif
 
 /**********************************************************************
 

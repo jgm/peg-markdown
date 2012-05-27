@@ -21,7 +21,10 @@
 
  ***********************************************************************/
 
-#include <stdbool.h>
+typedef int bool;
+#define true 1
+#define false 0
+ 
 #include <assert.h>
 #include "markdown_peg.h"
 #include "utility_functions.c"
@@ -581,9 +584,9 @@ YY_ACTION(void) yy_1_RawNoteReference(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_1_NoteReference(char *yytext, int yyleng)
 {
+     element *match;
 #define ref yyval[-1]
   yyprintf((stderr, "do yy_1_NoteReference\n"));
-     element *match;
                     if (find_note(&match, ref->contents.str)) {
                         yy = mk_element(NOTE);
                         assert(match->children != NULL);
@@ -741,8 +744,8 @@ YY_ACTION(void) yy_1_Reference(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_1_AutoLinkEmail(char *yytext, int yyleng)
 {
-  yyprintf((stderr, "do yy_1_AutoLinkEmail\n"));
      char *mailto = malloc(strlen(yytext) + 8);
+  yyprintf((stderr, "do yy_1_AutoLinkEmail\n"));
                     sprintf(mailto, "mailto:%s", yytext);
                     yy = mk_link(mk_str(yytext), mailto, "");
                     free(mailto);
@@ -779,9 +782,9 @@ YY_ACTION(void) yy_1_ExplicitLink(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_1_ReferenceLinkSingle(char *yytext, int yyleng)
 {
+     link match;
 #define a yyval[-1]
   yyprintf((stderr, "do yy_1_ReferenceLinkSingle\n"));
-     link match;
                            if (find_reference(&match, a->children)) {
                                yy = mk_link(a->children, match.url, match.title);
                                free(a);
@@ -797,10 +800,10 @@ YY_ACTION(void) yy_1_ReferenceLinkSingle(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_1_ReferenceLinkDouble(char *yytext, int yyleng)
 {
+     link match;
 #define b yyval[-1]
 #define a yyval[-2]
   yyprintf((stderr, "do yy_1_ReferenceLinkDouble\n"));
-     link match;
                            if (find_reference(&match, b->children)) {
                                yy = mk_link(a->children, match.url, match.title);
                                free(a);
@@ -1113,9 +1116,9 @@ YY_ACTION(void) yy_1_ListBlock(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_3_ListItemTight(char *yytext, int yyleng)
 {
+    element *raw;
 #define a yyval[-1]
   yyprintf((stderr, "do yy_3_ListItemTight\n"));
-    element *raw;
                raw = mk_str_from_list(a, false);
                raw->key = RAW;
                yy = mk_element(LISTITEM);
@@ -1139,9 +1142,9 @@ YY_ACTION(void) yy_1_ListItemTight(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_3_ListItem(char *yytext, int yyleng)
 {
+    element *raw;
 #define a yyval[-1]
   yyprintf((stderr, "do yy_3_ListItem\n"));
-    element *raw;
                raw = mk_str_from_list(a, false);
                raw->key = RAW;
                yy = mk_element(LISTITEM);
@@ -1174,10 +1177,10 @@ YY_ACTION(void) yy_2_ListLoose(char *yytext, int yyleng)
 }
 YY_ACTION(void) yy_1_ListLoose(char *yytext, int yyleng)
 {
+     element *li;
 #define b yyval[-1]
 #define a yyval[-2]
   yyprintf((stderr, "do yy_1_ListLoose\n"));
-     element *li;
                   li = b->children;
                   li->contents.str = realloc(li->contents.str, strlen(li->contents.str) + 3);
                   strcat(li->contents.str, "\n\n");  /* In loose list, \n\n added to end of each element */
