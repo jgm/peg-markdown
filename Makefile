@@ -6,7 +6,7 @@ endif
 export X
 
 PROGRAM=markdown$(X)
-CFLAGS ?= -Wall -O3 -ansi
+CFLAGS ?=-Wall -O2 -pipe -g -Wno-unused-label -Wno-unused-function
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o
 PKG_CONFIG=pkg-config
 LEG=leg
