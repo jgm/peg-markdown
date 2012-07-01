@@ -1,7 +1,7 @@
 /* parsing_functions.c - Functions for parsing markdown and
  * freeing element lists. */
 
-int yyparse(void);
+/* int yyparse(void); */
 
 static void free_element_contents(element elt);
 

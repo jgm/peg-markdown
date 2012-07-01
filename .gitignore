@@ -1,0 +1,8 @@
+.*~
+*.o
+*.lo
+.directory
+markdown
+*.bak
+markdown_parser.c
+*.so*

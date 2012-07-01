@@ -2,7 +2,7 @@
 #include "markdown_lib.h"
 #include <glib.h>
 
-extern char *strdup(const char *string);
+/* extern char *strdup(const char *string); */
 
 /* Information (label, URL and title) for a link. */
 struct Link {
