@@ -51,8 +51,9 @@ leak-check: $(PROGRAM)
 install: $(LIBRARY) $(PROGRAM)
 	install -D -m 0755 markdown $(DESTDIR)/bin/$(PROGRAM)
 	install -D -m 0755 $(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so.$(VERSION)
-	ln -sf $(DESTDIR)/lib/$(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so.$(SHORT_VERSION)
-	ln -sf $(DESTDIR)/lib/$(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so
+	cd $(DESTDIR)/lib
+	ln -sf $(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so.$(SHORT_VERSION)
+	ln -sf $(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so
 
 uninstall:
 	rm -f $(DESTDIR)/bin/$(PROGRAM)
