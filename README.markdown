@@ -166,7 +166,7 @@ bitwise `&` operator and the following constants:
 `output_format` is either `HTML_FORMAT`, `LATEX_FORMAT`, `ODF_FORMAT`,
 or `GROFF_MM_FORMAT`.
 
-To use the library, include `markdown_lib.h`.  See `markdown.c` for an example.
+To use the library, include `markdown_lib.h` and link with `-lpegmarkdown`.
 
 Hacking
 =======
