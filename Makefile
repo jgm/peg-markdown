@@ -14,6 +14,7 @@ CC=gcc
 LIBRARY=libpegmarkdown
 VERSION=1.0.0
 SHORT_VERSION=1
+DESTDIR=/usr/local
 
 ALL : $(LIBRARY) $(PROGRAM)
 
@@ -25,8 +26,9 @@ $(PROGRAM) : markdown.c $(OBJS)
 
 $(LIBRARY) : markdown_parser.o $(OBJS)
 	$(CC) `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -shared -Wl,-soname,$(LIBRARY).so.$(SHORT_VERSION) -o $(LIBRARY).so.$(VERSION) $(OBJS) `$(PKG_CONFIG) --libs glib-2.0`
+	rm -f $(LIBRARY).so.$(SHORT_VERSION) $(LIBRARY).so
 	ln -s $(LIBRARY).so.$(VERSION) $(LIBRARY).so.$(SHORT_VERSION)
-	ln -s $(LIBRARY).so.$(SHORT_VERSION) $(LIBRARY).so
+	ln -s $(LIBRARY).so.$(VERSION) $(LIBRARY).so
 
 markdown_parser.o : markdown_parser.c
 	$(CC) -fPIC -c `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -o $@ $<
@@ -37,7 +39,7 @@ markdown_parser.c : markdown_parser.leg markdown_peg.h parsing_functions.c utili
 .PHONY: clean test
 
 clean:
-	rm -f markdown_parser.c $(PROGRAM) $(OBJS) *.so.*
+	rm -f markdown_parser.c $(PROGRAM) $(OBJS) *.so*
 
 test: $(PROGRAM)
 	cd MarkdownTest_1.0.3; \
@@ -45,3 +47,15 @@ test: $(PROGRAM)
 
 leak-check: $(PROGRAM)
 	valgrind --leak-check=full ./markdown README
+
+install: $(LIBRARY) $(PROGRAM)
+	install -D -m 0755 markdown $(DESTDIR)/bin/$(PROGRAM)
+	install -D -m 0755 $(LIBRARY).so $(DESTDIR)/lib/$(LIBRARY).so
+	install -D -m 0755 $(LIBRARY).so.$(SHORT_VERSION) $(DESTDIR)/lib/$(LIBRARY).so.$(SHORT_VERSION)
+	install -D -m 0755 $(LIBRARY).so.$(VERSION) $(DESTDIR)/lib/$(LIBRARY).so.$(VERSION)
+
+uninstall:
+	rm -f $(DESTDIR)/bin/$(PROGRAM)
+	rm -f $(DESTDIR)/lib/$(LIBRARY).so
+	rm -f $(DESTDIR)/lib/$(LIBRARY).so.$(SHORT_VERSION)
+	rm -f $(DESTDIR)/lib/$(LIBRARY).so.$(VERSION)
