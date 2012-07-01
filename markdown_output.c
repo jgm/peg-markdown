@@ -387,7 +387,7 @@ static void print_latex_element_list(GString *out, element *list) {
 
 /* print_latex_element - print an element as LaTeX */
 static void print_latex_element(GString *out, element *elt) {
-    int lev;
+    /*int lev;*/
     int i;
     switch (elt->key) {
     case SPACE:
@@ -456,7 +456,7 @@ static void print_latex_element(GString *out, element *elt) {
         break;
     case H1: case H2: case H3:
         pad(out, 2);
-        lev = elt->key - H1 + 1;  /* assumes H1 ... H6 are in order */
+        /*lev = elt->key - H1 + 1;*/  /* assumes H1 ... H6 are in order */
         g_string_append_printf(out, "\\");
         for (i = elt->key; i > H1; i--)
             g_string_append_printf(out, "sub");
