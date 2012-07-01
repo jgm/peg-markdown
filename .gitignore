@@ -5,3 +5,4 @@
 markdown
 peg
 *.bak
+markdown_parser.c
