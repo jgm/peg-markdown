@@ -3,6 +3,5 @@
 *.lo
 .directory
 markdown
-peg
 *.bak
 markdown_parser.c
