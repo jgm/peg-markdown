@@ -524,7 +524,7 @@ ReferenceLinkSingle =  a:Label < (Spnl "[]")? >
                            }
                        }
 
-ExplicitLink =  l:Label Spnl '(' Sp s:Source Spnl t:Title Sp ')'
+ExplicitLink =  l:Label '(' Sp s:Source Spnl t:Title Sp ')'
                 { $$ = mk_link(l->children, s->contents.str, t->contents.str);
                   free_element(s);
                   free_element(t);
