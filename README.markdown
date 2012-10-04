@@ -31,7 +31,7 @@ On a linux or unix-based system
 -------------------------------
 
 This program is written in portable ANSI C. It requires
-[glib2](http://www.gtk.org/download.html). Most *nix systems will have
+[glib2](http://www.gtk.org/download/index.php). Most *nix systems will have
 this installed already. The build system requires GNU make.
 
 The other required dependency, [Ian Piumarta's peg/leg PEG parser
