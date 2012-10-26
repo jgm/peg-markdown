@@ -212,6 +212,11 @@ static void print_html_element(GString *out, element *elt, bool obfuscate) {
         print_html_element_list(out, elt->children, obfuscate);
         g_string_append_printf(out, "</strong>");
         break;
+    case STRIKE:
+        g_string_append_printf(out, "<del>");
+        print_html_element_list(out, elt->children, obfuscate);
+        g_string_append_printf(out, "</del>");
+        break;
     case LIST:
         print_html_element_list(out, elt->children, obfuscate);
         break;
