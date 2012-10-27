@@ -558,7 +558,7 @@ TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) . )* > '"'
 AutoLink = AutoLinkUrl | AutoLinkEmail
 
 AutoLinkUrl =   ( '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
-                | &{ extension(EXT_AUTOLINK) } < [A-Za-z]+ "://" ( !Newline Nonspacechar )+ > )
+                | &{ extension(EXT_AUTOLINK) } !'[' < [A-Za-z]+ "://" ( !Newline !']' Nonspacechar )+ > )
                 {   $$ = mk_link(mk_str(yytext), yytext, ""); }
 
 AutoLinkEmail = '<' ( "mailto:" )? < [-A-Za-z0-9+_./!%~$]+ '@' ( !Newline !'>' . )+ > '>'
