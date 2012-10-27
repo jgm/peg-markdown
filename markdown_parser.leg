@@ -383,8 +383,7 @@ Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
                         | c:Endline &Inline { a = cons(c, a); } )+ Endline?
             { $$ = mk_list(LIST, a); }
 
-Inline  = Str
-        | Endline
+Inline  = Endline
         | UlOrStarLine
         | Space
         | Strong
@@ -392,6 +391,7 @@ Inline  = Str
         | Strike
         | Image
         | Link
+        | Str
         | NoteReference
         | InlineNote
         | Code
@@ -557,7 +557,8 @@ TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) . )* > '"'
 
 AutoLink = AutoLinkUrl | AutoLinkEmail
 
-AutoLinkUrl =   '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
+AutoLinkUrl =   ( '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
+                | &{ extension(EXT_AUTOLINK) } < [A-Za-z]+ "://" ( !Newline Nonspacechar )+ > )
                 {   $$ = mk_link(mk_str(yytext), yytext, ""); }
 
 AutoLinkEmail = '<' ( "mailto:" )? < [-A-Za-z0-9+_./!%~$]+ '@' ( !Newline !'>' . )+ > '>'
