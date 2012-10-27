@@ -484,10 +484,11 @@ StrongUl =  TwoUlOpen
             TwoUlClose { a = cons($$, a); }
             { $$ = mk_list(STRONG, a); }
 
-TwoTildeOpen =  !TildeLine "~~" !Spacechar !Newline
-TwoTildeClose = !Spacechar !Newline a:Inline "~~" { $$ = a; }
+TwoTildeOpen =  &{ extension(EXT_STRIKE) } !TildeLine "~~" !Spacechar !Newline
+TwoTildeClose = &{ extension(EXT_STRIKE) } !Spacechar !Newline a:Inline "~~" { $$ = a; }
 
-Strike = TwoTildeOpen
+Strike = &{ extension(EXT_STRIKE) }
+         TwoTildeOpen
          a:StartList
          ( !TwoTildeClose Inline { a = cons($$, a); } )*
          TwoTildeClose { a = cons($$, a); }
