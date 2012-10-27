@@ -53,10 +53,10 @@ Plain =     a:Inlines
 
 AtxInline = !Newline !(Sp? '#'* Sp Newline) Inline
 
-AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) ' '+ >
+AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
 
-AtxHeading = s:AtxStart Sp? a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp? '#'* Sp)?  Newline
+AtxHeading = s:AtxStart Spacechar+ a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp? '#'* Sp)?  Newline
             { $$ = mk_list(s->key, a);
               free(s); }
 
