@@ -134,6 +134,8 @@ The `--smart` extension provides "smart quotes", dashes, and ellipses.
 The `--notes` extension provides a footnote syntax like that of
 Pandoc or PHP Markdown Extra.
 
+The `--autolink` extension converts bare URLs into links.
+
 Using the library
 =================
 
@@ -160,6 +162,7 @@ bitwise `&` operator and the following constants:
  - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax][] is used here.
  - `EXT_FILTER_HTML` filters out raw HTML (except for styles).
  - `EXT_FILTER_STYLES` filters out styles in HTML.
+ - `EXT_AUTOLINK` turns bare URLs into links.
 
   [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
 
