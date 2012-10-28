@@ -431,7 +431,7 @@ NormalEndline =   Sp Newline !BlankLine !'>' !AtxStart
 TerminalEndline = Sp Newline Eof
                   { $$ = NULL; }
 
-LineBreak = "  " NormalEndline
+LineBreak = ( "  " NormalEndline | &{ extension(EXT_HARD_WRAP) } NormalEndline )
             { $$ = mk_element(LINEBREAK); }
 
 Symbol =    < SpecialChar >
