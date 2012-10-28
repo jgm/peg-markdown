@@ -953,6 +953,12 @@ void print_odf_element(GString *out, element *elt) {
         print_odf_element_list(out, elt->children);
         g_string_append_printf(out, "</text:span>");
         break;
+    case STRIKE:
+        g_string_append_printf(out,
+            "<text:span text:style-name=\"StrikeThrough\">");
+        print_odf_element_list(out, elt->children);
+        g_string_append_printf(out, "</text:span>");
+        break;
     case LIST:
         print_odf_element_list(out, elt->children);
         break;
