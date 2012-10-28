@@ -449,6 +449,11 @@ static void print_latex_element(GString *out, element *elt) {
         print_latex_element_list(out, elt->children);
         g_string_append_printf(out, "}");
         break;
+    case STRIKE:
+        g_string_append_printf(out, "\\sout{");
+        print_latex_element_list(out, elt->children);
+        g_string_append_printf(out, "}");
+        break;
     case LIST:
         print_latex_element_list(out, elt->children);
         break;
@@ -1114,6 +1119,9 @@ void print_element_list(GString *out, element *elt, int format, int exts) {
         }
         break;
     case LATEX_FORMAT:
+        if (extensions & EXT_STRIKE) {
+          g_string_append_printf(out, "\\usepackage{ulem}\n");
+        }
         print_latex_element_list(out, elt);
         break;
     case GROFF_MM_FORMAT:
