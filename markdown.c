@@ -73,6 +73,7 @@ int main(int argc, char * argv[]) {
     static gboolean opt_filter_styles = FALSE;
     static gboolean opt_strike = FALSE;
     static gboolean opt_autolink = FALSE;
+    static gboolean opt_hardwrap = FALSE;
     static gboolean opt_allext = FALSE;
 
     static GOptionEntry entries[] =
@@ -93,6 +94,7 @@ int main(int argc, char * argv[]) {
       { "notes",    0, 0, G_OPTION_ARG_NONE, &opt_notes,    "use notes extension", NULL },
       { "strike",   0, 0, G_OPTION_ARG_NONE, &opt_strike,   "use strike-through extension", NULL },
       { "autolink", 0, 0, G_OPTION_ARG_NONE, &opt_autolink, "autolink bare URLs", NULL },
+      { "hardwrap", 0, 0, G_OPTION_ARG_NONE, &opt_hardwrap, "respect linebreaks in paragraphs", NULL },
       { NULL }
     };
 
@@ -135,6 +137,8 @@ int main(int argc, char * argv[]) {
         extensions = extensions | EXT_STRIKE;
     if (opt_autolink)
         extensions = extensions | EXT_AUTOLINK;
+    if (opt_hardwrap)
+        extensions = extensions | EXT_HARD_WRAP;
 
     if (opt_to == NULL)
         output_format = HTML_FORMAT;
