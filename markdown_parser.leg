@@ -442,27 +442,19 @@ UlOrStarLine =  (UlLine | StarLine) { $$ = mk_str(yytext); }
 StarLine =      < "****" '*'* > | < Spacechar '*'+ &Spacechar >
 UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
 
-SpaceInline = a:StartList
-              ( (b:Space | b:Endline) { a = cons(b, a); } )+
-              c:Inline { a = cons(c, a); $$ = mk_list(LIST, a); }
-
-NonspaceInline = !Spacechar !Newline Inline
-
 Emph =      EmphStar | EmphUl
 
-EmphStar =  '*'
+EmphStar =  '*' &Nonspacechar
             a:StartList
-            ( !'*' b:NonspaceInline { a = cons(b, a); }
-            | b:SpaceInline { a = cons(b, a); }
+            ( !'*' b:Inline { a = cons(b, a); }
             | b:StrongStar  { a = cons(b, a); }
             )+
             '*'
             { $$ = mk_list(EMPH, a); }
 
-EmphUl =    '_'
+EmphUl =    '_' &Nonspacechar
             a:StartList
-            ( !'_' b:NonspaceInline { a = cons(b, a); }
-            | b:SpaceInline { a = cons(b, a); }
+            ( !'_' b:Inline { a = cons(b, a); }
             | b:StrongUl  { a = cons(b, a); }
             )+
             '_'
@@ -470,19 +462,15 @@ EmphUl =    '_'
 
 Strong = StrongStar | StrongUl
 
-StrongStar =    "**"
+StrongStar =    "**" &Nonspacechar
                 a:StartList
-                ( !"**" b:NonspaceInline { a = cons(b, a); }
-                | b:SpaceInline { a = cons(b, a); }
-                )+
+                ( !"**" b:Inline { a = cons(b, a); })+
                 "**"
                 { $$ = mk_list(STRONG, a); }
 
-StrongUl   =    "__"
+StrongUl   =    "__" &Nonspacechar
                 a:StartList
-                ( !"__" b:NonspaceInline { a = cons(b, a); }
-                | b:SpaceInline { a = cons(b, a); }
-                )+
+                ( !"__" b:Inline { a = cons(b, a); })+
                 "__"
                 { $$ = mk_list(STRONG, a); }
 
