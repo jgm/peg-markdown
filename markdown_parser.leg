@@ -526,7 +526,6 @@ Source  = ( '<' < SourceContents > '>' | < SourceContents > )
           { $$ = mk_str(yytext); }
 
 SourceContents = ( ( !'(' !')' !'>' Nonspacechar )+ | '(' SourceContents ')')*
-                 | ""
 
 Title = ( TitleSingle | TitleDouble | < "" > )
         { $$ = mk_str(yytext); }
