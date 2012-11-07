@@ -62,9 +62,9 @@ AtxHeading = s:AtxStart Sp? a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp?
 
 SetextHeading = SetextHeading1 | SetextHeading2
 
-SetextBottom1 = "===" '='* Newline
+SetextBottom1 = '='+ Newline
 
-SetextBottom2 = "---" '-'* Newline
+SetextBottom2 = '-'+ Newline
 
 SetextHeading1 =  &(RawLine SetextBottom1)
                   a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
