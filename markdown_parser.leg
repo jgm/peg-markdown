@@ -56,7 +56,7 @@ AtxInline = !Newline !(Sp? '#'* Sp Newline) Inline
 AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
 
-AtxHeading = s:AtxStart Sp? a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp? '#'* Sp)?  Newline
+AtxHeading = s:AtxStart Spacechar+ a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp? '#'* Sp)?  Newline
             { $$ = mk_list(s->key, a);
               free(s); }
 
@@ -383,14 +383,15 @@ Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a); }
                         | c:Endline &Inline { a = cons(c, a); } )+ Endline?
             { $$ = mk_list(LIST, a); }
 
-Inline  = Str
-        | Endline
+Inline  = Endline
         | UlOrStarLine
         | Space
         | Strong
         | Emph
+        | Strike
         | Image
         | Link
+        | Str
         | NoteReference
         | InlineNote
         | Code
@@ -430,7 +431,7 @@ NormalEndline =   Sp Newline !BlankLine !'>' !AtxStart
 TerminalEndline = Sp Newline Eof
                   { $$ = NULL; }
 
-LineBreak = "  " NormalEndline
+LineBreak = ( "  " NormalEndline | &{ extension(EXT_HARD_WRAP) } NormalEndline )
             { $$ = mk_element(LINEBREAK); }
 
 Symbol =    < SpecialChar >
@@ -441,6 +442,7 @@ Symbol =    < SpecialChar >
 UlOrStarLine =  (UlLine | StarLine) { $$ = mk_str(yytext); }
 StarLine =      < "****" '*'* > | < Spacechar '*'+ &Spacechar >
 UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
+TildeLine =     < "~~~~" '~'* > | < Spacechar '~'+ &Spacechar >
 
 SpaceInline = a:StartList
               ( (b:Space | b:Endline) { a = cons(b, a); } )+
@@ -485,6 +487,16 @@ StrongUl   =    "__"
                 )+
                 "__"
                 { $$ = mk_list(STRONG, a); }
+
+TwoTildeOpen =  &{ extension(EXT_STRIKE) } !TildeLine "~~" !Spacechar !Newline
+TwoTildeClose = &{ extension(EXT_STRIKE) } !Spacechar !Newline a:Inline "~~" { $$ = a; }
+
+Strike = &{ extension(EXT_STRIKE) }
+         TwoTildeOpen
+         a:StartList
+         ( !TwoTildeClose Inline { a = cons($$, a); } )*
+         TwoTildeClose { a = cons($$, a); }
+         { $$ = mk_list(STRIKE, a); }
 
 Image = '!' ( ExplicitLink | ReferenceLink )
         { if ($$->key == LINK) {
@@ -549,7 +561,8 @@ TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) . )* > '"'
 
 AutoLink = AutoLinkUrl | AutoLinkEmail
 
-AutoLinkUrl =   '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
+AutoLinkUrl =   ( '<' < [A-Za-z]+ "://" ( !Newline !'>' . )+ > '>'
+                | &{ extension(EXT_AUTOLINK) } !'[' < [A-Za-z]+ "://" ( !Newline !']' Nonspacechar )+ > !']' )
                 {   $$ = mk_link(mk_str(yytext), yytext, ""); }
 
 AutoLinkEmail = '<' ( "mailto:" )? < [-A-Za-z0-9+_./!%~$]+ '@' ( !Newline !'>' . )+ > '>'
@@ -626,7 +639,7 @@ Nonspacechar =  !Spacechar !Newline .
 Newline =       '\n' | '\r' '\n'?
 Sp =            Spacechar*
 Spnl =          Sp (Newline Sp)?
-SpecialChar =   '*' | '_' | '`' | '&' | '[' | ']' | '(' | ')' | '<' | '!' | '#' | '\\' | '\'' | '"' | ExtendedSpecialChar
+SpecialChar =   '~' | '*' | '_' | '`' | '&' | '[' | ']' | '(' | ')' | '<' | '!' | '#' | '\\' | '\'' | '"' | ExtendedSpecialChar
 NormalChar =    !( SpecialChar | Spacechar | Newline ) .
 Alphanumeric = [0-9A-Za-z] | '\200' | '\201' | '\202' | '\203' | '\204' | '\205' | '\206' | '\207' | '\210' | '\211' | '\212' | '\213' | '\214' | '\215' | '\216' | '\217' | '\220' | '\221' | '\222' | '\223' | '\224' | '\225' | '\226' | '\227' | '\230' | '\231' | '\232' | '\233' | '\234' | '\235' | '\236' | '\237' | '\240' | '\241' | '\242' | '\243' | '\244' | '\245' | '\246' | '\247' | '\250' | '\251' | '\252' | '\253' | '\254' | '\255' | '\256' | '\257' | '\260' | '\261' | '\262' | '\263' | '\264' | '\265' | '\266' | '\267' | '\270' | '\271' | '\272' | '\273' | '\274' | '\275' | '\276' | '\277' | '\300' | '\301' | '\302' | '\303' | '\304' | '\305' | '\306' | '\307' | '\310' | '\311' | '\312' | '\313' | '\314' | '\315' | '\316' | '\317' | '\320' | '\321' | '\322' | '\323' | '\324' | '\325' | '\326' | '\327' | '\330' | '\331' | '\332' | '\333' | '\334' | '\335' | '\336' | '\337' | '\340' | '\341' | '\342' | '\343' | '\344' | '\345' | '\346' | '\347' | '\350' | '\351' | '\352' | '\353' | '\354' | '\355' | '\356' | '\357' | '\360' | '\361' | '\362' | '\363' | '\364' | '\365' | '\366' | '\367' | '\370' | '\371' | '\372' | '\373' | '\374' | '\375' | '\376' | '\377'
 AlphanumericAscii = [A-Za-z0-9]
