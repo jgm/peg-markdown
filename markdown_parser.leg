@@ -442,45 +442,49 @@ UlOrStarLine =  (UlLine | StarLine) { $$ = mk_str(yytext); }
 StarLine =      < "****" '*'* > | < Spacechar '*'+ &Spacechar >
 UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
 
+SpaceInline = a:StartList
+              ( (b:Space | b:Endline) { a = cons(b, a); } )+
+              c:Inline { a = cons(c, a); $$ = mk_list(LIST, a); }
+
+NonspaceInline = !Spacechar !Newline Inline
+
 Emph =      EmphStar | EmphUl
 
-OneStarOpen  =  !StarLine '*' !Spacechar !Newline
-OneStarClose =  !Spacechar !Newline a:Inline '*' { $$ = a; }
-
-EmphStar =  OneStarOpen
+EmphStar =  '*'
             a:StartList
-            ( !OneStarClose Inline { a = cons($$, a); } )*
-            OneStarClose { a = cons($$, a); }
+            ( !'*' b:NonspaceInline { a = cons(b, a); }
+            | b:SpaceInline { a = cons(b, a); }
+            | b:StrongStar  { a = cons(b, a); }
+            )+
+            '*'
             { $$ = mk_list(EMPH, a); }
 
-OneUlOpen  =  !UlLine '_' !Spacechar !Newline
-OneUlClose =  !Spacechar !Newline a:Inline '_' !Alphanumeric { $$ = a; }
-
-EmphUl =    OneUlOpen
+EmphUl =    '_'
             a:StartList
-            ( !OneUlClose Inline { a = cons($$, a); } )*
-            OneUlClose { a = cons($$, a); }
+            ( !'_' b:NonspaceInline { a = cons(b, a); }
+            | b:SpaceInline { a = cons(b, a); }
+            | b:StrongUl  { a = cons(b, a); }
+            )+
+            '_'
             { $$ = mk_list(EMPH, a); }
 
 Strong = StrongStar | StrongUl
 
-TwoStarOpen =   !StarLine "**" !Spacechar !Newline
-TwoStarClose =  !Spacechar !Newline a:Inline "**" { $$ = a; }
-
-StrongStar =    TwoStarOpen
+StrongStar =    "**"
                 a:StartList
-                ( !TwoStarClose Inline { a = cons($$, a); } )*
-                TwoStarClose { a = cons($$, a); }
+                ( !"**" b:NonspaceInline { a = cons(b, a); }
+                | b:SpaceInline { a = cons(b, a); }
+                )+
+                "**"
                 { $$ = mk_list(STRONG, a); }
 
-TwoUlOpen =     !UlLine "__" !Spacechar !Newline
-TwoUlClose =    !Spacechar !Newline a:Inline "__" !Alphanumeric { $$ = a; }
-
-StrongUl =  TwoUlOpen
-            a:StartList
-            ( !TwoUlClose Inline { a = cons($$, a); } )*
-            TwoUlClose { a = cons($$, a); }
-            { $$ = mk_list(STRONG, a); }
+StrongUl   =    "__"
+                a:StartList
+                ( !"__" b:NonspaceInline { a = cons(b, a); }
+                | b:SpaceInline { a = cons(b, a); }
+                )+
+                "__"
+                { $$ = mk_list(STRONG, a); }
 
 Image = '!' ( ExplicitLink | ReferenceLink )
         { if ($$->key == LINK) {
