@@ -13,9 +13,9 @@
 .\" 
 .\" THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
 .\" 
-.\" Last edited: 2007-09-13 08:40:20 by piumarta on emilia.local
+.\" Last edited: 2012-04-29 16:58:44 by piumarta on emilia
 .\"
-.TH PEG 1 "May 2007" "Version 0.1"
+.TH PEG 1 "April 2012" "Version 0.1"
 .SH NAME
 peg, leg \- parser generators
 .SH SYNOPSIS
@@ -745,6 +745,48 @@ be redefined to declare them 'static'.
     #define YY_PARSE(T) static T
 
 .fi
+.TP
+.BI YY_CTX_LOCAL
+If this symbol is defined during compilation of a generated parser
+then global parser state will be kept in a structure of
+type 'yycontext' which can be declared as a local variable.  This
+allows multiple instances of parsers to coexist and to be thread-safe.
+The parsing function
+.IR yyparse ()
+will be declared to expect a first argument of type 'yycontext *', an
+instance of the structure holding the global state for the parser.
+This instance must be allocated and initialised to zero by the client.
+A trivial but complete example is as follows.
+.nf
+
+    #include <stdio.h>
+
+    #define YY_CTX_LOCAL
+
+    #include "the-generated-parser.peg.c"
+
+    int main()
+    {
+      yycontext ctx;
+      memset(&ctx, 0, sizeof(yycontext));
+      while (yyparse(&ctx));
+      return 0;
+    }
+
+.fi
+Note that if this symbol is undefined then the compiled parser will
+statically allocate its global state and will be neither reentrant nor
+thread-safe.
+.TP
+.BI YY_CTX_MEMBERS
+If YY_CTX_LOCAL is defined (see above) then the macro YY_CTX_MEMBERS
+can be defined to expand to any additional member field declarations
+that the client would like included in the declaration of
+the 'yycontext' structure type.  These additional members are
+otherwise ignored by the generated parser.  The instance
+of 'yycontext' associated with the currently-active parser is
+available in actions through the pointer variable
+.IR yyctx .
 .PP
 The following variables can be reffered to within actions.
 .TP
@@ -761,6 +803,10 @@ The most recent matched text delimited by '<' and '>' is stored in this variable
 .TP
 .B int yyleng
 This variable indicates the number of characters in 'yytext'.
+.TP
+.B yycontext *yyctx
+This variable points to the instance of 'yycontext' associated with
+the currently-active parser.
 .SH DIAGNOSTICS
 .I peg
 and
