@@ -16,7 +16,7 @@
 # 
 # THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
 # 
-# Last edited: 2007-05-14 11:32:49 by piumarta on emilia
+# Last edited: 2012-04-29 15:14:06 by piumarta on emilia
 
 %{
 # include <stdio.h>
@@ -35,7 +35,7 @@
   int   pc= -1, epc= -1;
   int   batch= 0;
 
-  int getline(char *buf, int max);
+  int nextline(char *buf, int max);
 
 # define min(x, y) ((x) < (y) ? (x) : (y))
 
@@ -48,7 +48,7 @@
         memcpy(buf, linep->text, result);	\
       }						\
     else					\
-      result= getline(buf, max_size);		\
+      result= nextline(buf, max_size);		\
   }
 
   union value {
@@ -81,6 +81,7 @@
   char *help;
 
   void error(char *fmt, ...);
+  int findLine(int n, int create);
 %}
 
 line = - s:statement CR
@@ -95,7 +96,7 @@ statement = 'print'- expr-list
 |           'goto'- e:expression			{ epc= pc;  if ((pc= findLine(e.number, 0)) < 0) error("no such line"); }
 |           'input'- var-list
 |           'let'- v:var EQUAL e:expression		{ variables[v.number]= e.number; }
-|           'gosub'- e:expression			{ epc= pc;  if (sp < 1024) stack[sp++]= pc, pc= findLine(e.number); else error("too many gosubs");
+|           'gosub'- e:expression			{ epc= pc;  if (sp < 1024) stack[sp++]= pc, pc= findLine(e.number, 0); else error("too many gosubs");
 							  if (pc < 0) error("no such line"); }
 |           'return'-					{ epc= pc;  if ((pc= sp ? stack[--sp] : -1) < 0) error("no gosub"); }
 |           'clear'-					{ while (numLines) accept(lines->number, "\n"); }
@@ -198,7 +199,7 @@ void error(char *fmt, ...)
 # include <readline/history.h>
 #endif
 
-int getline(char *buf, int max)
+int nextline(char *buf, int max)
 {
   pc= -1;
   if (batch) exit(0);

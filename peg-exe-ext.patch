@@ -1,8 +1,8 @@
 2271467 peg/Makefile: use variables for binary file names (Tay Ray Chuan, Tue Jan 31 15:33:20 2012 +0800)
-diff --git a/peg-0.1.4/Makefile b/peg-0.1.4/Makefile
-index bc45e64..712e57e 100644
---- a/peg-0.1.4/Makefile
-+++ b/peg-0.1.4/Makefile
+diff --git a/peg-0.1.9/Makefile b/peg-0.1.9/Makefile
+index c10fbda..c80f91d 100644
+--- a/peg-0.1.9/Makefile
++++ b/peg-0.1.9/Makefile
 @@ -1,16 +1,19 @@
 +PEG = peg$(X)
 +LEG = leg$(X)
@@ -26,7 +26,7 @@ index bc45e64..712e57e 100644
  	$(CC) $(CFLAGS) -o $@-new leg.o $(OBJS)
  	mv $@-new $@
  
-@@ -18,28 +21,28 @@ ROOT	=
+@@ -18,35 +21,35 @@ ROOT	=
  PREFIX	= /usr/local
  BINDIR	= $(ROOT)$(PREFIX)/bin
  
@@ -45,24 +45,33 @@ index bc45e64..712e57e 100644
  
  peg.o : peg.c peg.peg-c
  
- %.peg-c : %.peg
--#	./peg -o $@ $<
+ %.peg-c : %.peg compile.c
+-	./peg -o $@ $<
 +#	./$(PEG) -o $@ $<
  
  leg.o : leg.c
  
- leg.c : leg.leg
--#	./leg -o $@ $<
+ leg.c : leg.leg compile.c
+-	./leg -o $@ $<
 +#	./$(LEG) -o $@ $<
  
--check : peg .FORCE
+ check : check-peg check-leg
+ 
+-check-peg : peg .FORCE
 -	./peg < peg.peg > peg.out
-+check : $(PEG) .FORCE
++check-peg : $(PEG) .FORCE
 +	./$(PEG) < peg.peg > peg.out
  	diff peg.peg-c peg.out
  	rm peg.out
  
-@@ -51,8 +54,8 @@ clean : .FORCE
+-check-leg : leg .FORCE
+-	./leg < leg.leg > leg.out
++check-leg : $(LEG) .FORCE
++	./$(LEG) < leg.leg > leg.out
+ 	diff leg.c leg.out
+ 	rm leg.out
+ 
+@@ -58,8 +61,8 @@ clean : .FORCE
  	$(SHELL) -ec '(cd examples;  $(MAKE) $@)'
  
  spotless : clean .FORCE
