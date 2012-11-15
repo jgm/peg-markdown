@@ -13,7 +13,7 @@
  * 
  * THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
  * 
- * Last edited: 2007-09-12 00:27:30 by piumarta on vps2.piumarta.com
+ * Last edited: 2012-04-29 15:49:09 by piumarta on emilia
  */
 
 #include "tree.h"
@@ -50,17 +50,17 @@ void yyerror(char *message);
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
-  if (yytext[0]) fprintf(stderr, " near token '%s'", yytext);
-  if (yypos < yylimit || !feof(input))
+  if (yyctx->text[0]) fprintf(stderr, " near token '%s'", yyctx->text);
+  if (yyctx->pos < yyctx->limit || !feof(input))
     {
-      yybuf[yylimit]= '\0';
+      yyctx->buf[yyctx->limit]= '\0';
       fprintf(stderr, " before text \"");
-      while (yypos < yylimit)
+      while (yyctx->pos < yyctx->limit)
 	{
-	  if ('\n' == yybuf[yypos] || '\r' == yybuf[yypos]) break;
-	  fputc(yybuf[yypos++], stderr);
+	  if ('\n' == yyctx->buf[yyctx->pos] || '\r' == yyctx->buf[yyctx->pos]) break;
+	  fputc(yyctx->buf[yyctx->pos++], stderr);
 	}
-      if (yypos == yylimit)
+      if (yyctx->pos == yyctx->limit)
 	{
 	  int c;
 	  while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)
