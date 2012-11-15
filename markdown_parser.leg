@@ -442,7 +442,6 @@ Symbol =    < SpecialChar >
 UlOrStarLine =  (UlLine | StarLine) { $$ = mk_str(yytext); }
 StarLine =      < "****" '*'* > | < Spacechar '*'+ &Spacechar >
 UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
-TildeLine =     < "~~~~" '~'* > | < Spacechar '~'+ &Spacechar >
 
 Emph =      EmphStar | EmphUl
 
@@ -478,14 +477,11 @@ StrongUl   =    "__" !Whitespace
                 "__"
                 { $$ = mk_list(STRONG, a); }
 
-TwoTildeOpen =  &{ extension(EXT_STRIKE) } !TildeLine "~~" !Spacechar !Newline
-TwoTildeClose = &{ extension(EXT_STRIKE) } !Spacechar !Newline a:Inline "~~" { $$ = a; }
-
 Strike = &{ extension(EXT_STRIKE) }
-         TwoTildeOpen
+         "~~" !Whitespace
          a:StartList
-         ( !TwoTildeClose Inline { a = cons($$, a); } )*
-         TwoTildeClose { a = cons($$, a); }
+         ( !"~~" b:Inline { a = cons(b, a); })+
+         "~~"
          { $$ = mk_list(STRIKE, a); }
 
 Image = '!' ( ExplicitLink | ReferenceLink )
