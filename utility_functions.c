@@ -1,7 +1,12 @@
 /* utility_functions.c - List manipulation functions, element
  * constructors, and macro definitions for leg markdown parser. */
 
-extern int strcasecmp(const char *string1, const char *string2);
+#include "utility_functions.h"
+#include "markdown_peg.h"
+
+#include <string.h>
+#include <assert.h>
+
 
 /**********************************************************************
 
@@ -10,14 +15,14 @@ extern int strcasecmp(const char *string1, const char *string2);
  ***********************************************************************/
 
 /* cons - cons an element onto a list, returning pointer to new head */
-static element * cons(element *new, element *list) {
+element * cons(element *new, element *list) {
     assert(new != NULL);
     new->next = list;
     return new;
 }
 
 /* reverse - reverse a list, returning pointer to new list */
-static element *reverse(element *list) {
+element *reverse(element *list) {
     element *new = NULL;
     element *next = NULL;
     while (list != NULL) {
@@ -30,7 +35,7 @@ static element *reverse(element *list) {
 
 /* concat_string_list - concatenates string contents of list of STR elements.
  * Frees STR elements as they are added to the concatenation. */
-static GString *concat_string_list(element *list) {
+GString *concat_string_list(element *list) {
     GString *result;
     element *next;
     result = g_string_new("");
@@ -51,11 +56,11 @@ static GString *concat_string_list(element *list) {
 
  ***********************************************************************/
 
-static char *charbuf = "";     /* Buffer of characters to be parsed. */
-static element *references = NULL;    /* List of link references found. */
-static element *notes = NULL;         /* List of footnotes found. */
-static element *parse_result;  /* Results of parse. */
-static int syntax_extensions;  /* Syntax extensions selected. */
+char *charbuf = "";     /* Buffer of characters to be parsed. */
+element *references = NULL;    /* List of link references found. */
+element *notes = NULL;         /* List of footnotes found. */
+element *parse_result;  /* Results of parse. */
+int syntax_extensions;  /* Syntax extensions selected. */
 
 /**********************************************************************
 
@@ -66,7 +71,7 @@ static int syntax_extensions;  /* Syntax extensions selected. */
  ***********************************************************************/
 
 /* mk_element - generic constructor for element */
-static element * mk_element(int key) {
+element * mk_element(int key) {
     element *result = malloc(sizeof(element));
     result->key = key;
     result->children = NULL;
@@ -76,7 +81,7 @@ static element * mk_element(int key) {
 }
 
 /* mk_str - constructor for STR element */
-static element * mk_str(char *string) {
+element * mk_str(char *string) {
     element *result;
     assert(string != NULL);
     result = mk_element(STR);
@@ -86,7 +91,7 @@ static element * mk_str(char *string) {
 
 /* mk_str_from_list - makes STR element by concatenating a
  * reversed list of strings, adding optional extra newline */
-static element * mk_str_from_list(element *list, bool extra_newline) {
+element * mk_str_from_list(element *list, bool extra_newline) {
     element *result;
     GString *c = concat_string_list(reverse(list));
     if (extra_newline)
@@ -100,7 +105,7 @@ static element * mk_str_from_list(element *list, bool extra_newline) {
 /* mk_list - makes new list with key 'key' and children the reverse of 'lst'.
  * This is designed to be used with cons to build lists in a parser action.
  * The reversing is necessary because cons adds to the head of a list. */
-static element * mk_list(int key, element *lst) {
+element * mk_list(int key, element *lst) {
     element *result;
     result = mk_element(key);
     result->children = reverse(lst);
@@ -108,7 +113,7 @@ static element * mk_list(int key, element *lst) {
 }
 
 /* mk_link - constructor for LINK element */
-static element * mk_link(element *label, char *url, char *title) {
+element * mk_link(element *label, char *url, char *title) {
     element *result;
     result = mk_element(LINK);
     result->contents.link = malloc(sizeof(link));
@@ -119,12 +124,12 @@ static element * mk_link(element *label, char *url, char *title) {
 }
 
 /* extension = returns true if extension is selected */
-static bool extension(int ext) {
+bool extension(int ext) {
     return (syntax_extensions & ext);
 }
 
 /* match_inlines - returns true if inline lists match (case-insensitive...) */
-static bool match_inlines(element *l1, element *l2) {
+bool match_inlines(element *l1, element *l2) {
     while (l1 != NULL && l2 != NULL) {
         if (l1->key != l2->key)
             return false;
@@ -168,7 +173,7 @@ static bool match_inlines(element *l1, element *l2) {
 
 /* find_reference - return true if link found in references matching label.
  * 'link' is modified with the matching url and title. */
-static bool find_reference(link *result, element *label) {
+bool find_reference(link *result, element *label) {
     element *cur = references;  /* pointer to walk up list of references */
     link *curitem;
     while (cur != NULL) {
@@ -186,7 +191,7 @@ static bool find_reference(link *result, element *label) {
 /* find_note - return true if note found in notes matching label.
 if found, 'result' is set to point to matched note. */
 
-static bool find_note(element **result, char *label) {
+bool find_note(element **result, char *label) {
    element *cur = notes;  /* pointer to walk up list of notes */
    while (cur != NULL) {
        if (strcmp(label, cur->contents.str) == 0) {
@@ -198,29 +203,4 @@ static bool find_note(element **result, char *label) {
    }
    return false;
 }
-
-/**********************************************************************
-
-  Definitions for leg parser generator.
-  YY_INPUT is the function the parser calls to get new input.
-  We take all new input from (static) charbuf.
-
- ***********************************************************************/
-
-# define YYSTYPE element *
-#ifdef __DEBUG__
-# define YY_DEBUG 1
-#endif
-
-#define YY_INPUT(buf, result, max_size)              \
-{                                                    \
-    int yyc;                                         \
-    if (charbuf && *charbuf != '\0') {               \
-        yyc= *charbuf++;                             \
-    } else {                                         \
-        yyc= EOF;                                    \
-    }                                                \
-    result= (EOF == yyc) ? 0 : (*(buf)= yyc, 1);     \
-}
-
 
