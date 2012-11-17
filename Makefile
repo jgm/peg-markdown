@@ -8,16 +8,11 @@ export X
 PROGRAM=markdown$(X)
 CFLAGS ?= -Wall -O3 -ansi
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o
-PEGDIR_ORIG=peg-0.1.9
-PEGDIR=peg
+PEGDIR=peg-0.1.9
 LEG=$(PEGDIR)/leg$(X)
 PKG_CONFIG = pkg-config
 
 ALL : $(PROGRAM)
-
-$(PEGDIR):
-	cp -r $(PEGDIR_ORIG) $(PEGDIR) ; \
-	patch -p1 < peg-exe-ext.patch
 
 $(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)
