@@ -32,8 +32,8 @@ clean:
 	rm -f markdown_parser.c $(PROGRAM) $(OBJS)
 
 distclean: clean
-	rm -rf $(PEGDIR)
-
+	make -C $(PEGDIR) clean
+\
 test: $(PROGRAM)
 	cd MarkdownTest_1.0.3; \
 	./MarkdownTest.pl --script=../$(PROGRAM) --tidy
