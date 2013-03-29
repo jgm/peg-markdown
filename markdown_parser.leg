@@ -18,7 +18,38 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "markdown_peg.h"
-#include "utility_functions.c"
+#include "utility_functions.h"
+
+
+
+/**********************************************************************
+
+  Definitions for leg parser generator.
+  YY_INPUT is the function the parser calls to get new input.
+  We take all new input from (static) charbuf.
+
+ ***********************************************************************/
+
+
+
+# define YYSTYPE element *
+#ifdef __DEBUG__
+# define YY_DEBUG 1
+#endif
+
+#define YY_INPUT(buf, result, max_size)              \
+{                                                    \
+    int yyc;                                         \
+    if (charbuf && *charbuf != '\0') {               \
+        yyc= *charbuf++;                             \
+    } else {                                         \
+        yyc= EOF;                                    \
+    }                                                \
+    result= (EOF == yyc) ? 0 : (*(buf)= yyc, 1);     \
+}
+
+#define YY_RULE(T)	T
+
 
 /**********************************************************************
 
@@ -312,6 +343,9 @@ HtmlBlockOpenScript = '<' Spnl ("script" | "SCRIPT") Spnl HtmlAttribute* '>'
 HtmlBlockCloseScript = '<' Spnl '/' ("script" | "SCRIPT") Spnl '>'
 HtmlBlockScript = HtmlBlockOpenScript (!HtmlBlockCloseScript .)* HtmlBlockCloseScript
 
+HtmlBlockOpenHead = '<' Spnl ("head" | "HEAD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseHead = '<' Spnl '/' ("head" | "HEAD") Spnl '>'
+HtmlBlockHead = HtmlBlockOpenHead (!HtmlBlockCloseHead .)* HtmlBlockCloseHead
 
 HtmlBlockInTags = HtmlBlockAddress
                 | HtmlBlockBlockquote
@@ -346,6 +380,7 @@ HtmlBlockInTags = HtmlBlockAddress
                 | HtmlBlockThead
                 | HtmlBlockTr
                 | HtmlBlockScript
+                | HtmlBlockHead
 
 HtmlBlock = < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) >
             BlankLine+
@@ -744,5 +779,4 @@ RawNoteBlock =  a:StartList
 
 %%
 
-#include "parsing_functions.c"
 

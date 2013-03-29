@@ -30,18 +30,25 @@ uninstall : .FORCE
 
 peg.o : peg.c peg.peg-c
 
-%.peg-c : %.peg
-#	./peg -o $@ $<
+%.peg-c : %.peg compile.c
+	./peg -o $@ $<
 
 leg.o : leg.c
 
-leg.c : leg.leg
-#	./leg -o $@ $<
+leg.c : leg.leg compile.c
+	./leg -o $@ $<
 
-check : peg .FORCE
+check : check-peg check-leg
+
+check-peg : peg .FORCE
 	./peg < peg.peg > peg.out
 	diff peg.peg-c peg.out
 	rm peg.out
+
+check-leg : leg .FORCE
+	./leg < leg.leg > leg.out
+	diff leg.c leg.out
+	rm leg.out
 
 test examples : .FORCE
 	$(SHELL) -ec '(cd examples;  $(MAKE))'

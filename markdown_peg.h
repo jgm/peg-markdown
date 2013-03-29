@@ -1,8 +1,9 @@
 /* markdown_peg.h */
+#ifndef MARKDOWN_PEG_H
+#define MARKDOWN_PEG_H
+
 #include "markdown_lib.h"
 #include <glib.h>
-
-extern char *strdup(const char *string);
 
 /* Information (label, URL and title) for a link. */
 struct Link {
@@ -69,3 +70,4 @@ void free_element_list(element * elt);
 void free_element(element *elt);
 void print_element_list(GString *out, element *elt, int format, int exts);
 
+#endif

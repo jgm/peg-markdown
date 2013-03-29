@@ -6,19 +6,13 @@ endif
 export X
 
 PROGRAM=markdown$(X)
-CFLAGS ?= -Wall -O3 -ansi
-OBJS=markdown_parser.o markdown_output.o markdown_lib.o
-PEGDIR_ORIG=peg-0.1.4
-PEGDIR=peg
+CFLAGS ?= -Wall -O3 -ansi -D_GNU_SOURCE # -flto for newer GCC versions
+OBJS=markdown_parser.o markdown_output.o markdown_lib.o utility_functions.o parsing_functions.o odf.o
+PEGDIR=peg-0.1.9
 LEG=$(PEGDIR)/leg$(X)
 PKG_CONFIG = pkg-config
 
 ALL : $(PROGRAM)
-
-$(PEGDIR):
-	cp -r $(PEGDIR_ORIG) $(PEGDIR) ; \
-	patch -p1 < peg-memory-fix.patch ; \
-	patch -p1 < peg-exe-ext.patch
 
 $(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)
@@ -38,8 +32,8 @@ clean:
 	rm -f markdown_parser.c $(PROGRAM) $(OBJS)
 
 distclean: clean
-	rm -rf $(PEGDIR)
-
+	make -C $(PEGDIR) clean
+\
 test: $(PROGRAM)
 	cd MarkdownTest_1.0.3; \
 	./MarkdownTest.pl --script=../$(PROGRAM) --tidy

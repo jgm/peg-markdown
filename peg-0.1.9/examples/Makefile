@@ -1,4 +1,4 @@
-EXAMPLES = test rule accept wc dc dcv calc basic
+EXAMPLES = test rule accept wc dc dcv calc basic localctx
 
 CFLAGS = -g -O3
 
@@ -71,8 +71,17 @@ basic : .FORCE
 	rm -f $@.out
 	@echo
 
+localctx : .FORCE
+	../peg -o test.peg.c test.peg
+	$(CC) $(CFLAGS) -o localctx localctx.c
+	echo 'ab.ac.ad.ae.afg.afh.afg.afh.afi.afj.' | ./$@ | $(TEE) $@.out
+	$(DIFF) $@.ref $@.out
+	rm -f $@.out
+	@echo
+
 clean : .FORCE
 	rm -f *~ *.o *.[pl]eg.[cd] $(EXAMPLES)
+	rm -rf *.dSYM
 
 spotless : clean
 

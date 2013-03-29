@@ -1,7 +1,20 @@
 /* parsing_functions.c - Functions for parsing markdown and
  * freeing element lists. */
 
-int yyparse(void);
+/* These yy_* functions come from markdown_parser.c which is
+ * generated from markdown_parser.leg
+ * */
+typedef int (*yyrule)();
+
+extern int yyparse();
+extern int yyparsefrom(yyrule);
+extern int yy_References();
+extern int yy_Notes();
+extern int yy_Doc();
+
+#include "utility_functions.h"
+#include "parsing_functions.h"
+#include "markdown_peg.h"
 
 static void free_element_contents(element elt);
 
