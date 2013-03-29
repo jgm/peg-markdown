@@ -144,6 +144,9 @@ void print_odf_header(GString *out){
     "      <style:text-properties fo:font-weight=\"bold\" style:font-weight-asian=\"bold\"\n" \
     "                             style:font-weight-complex=\"bold\"/>\n" \
     "   </style:style>\n" \
+    "   <style:style style:name=\"StrikeThrough\" style:family=\"text\">\n" \
+    "      <style:text-properties style:text-line-through-style=\"solid\"/>\n" \
+    "   </style:style>\n" \
     "<style:style style:name=\"MMD-Table\" style:family=\"paragraph\" style:parent-style-name=\"Standard\">\n" \
     "   <style:paragraph-properties fo:margin-top=\"0in\" fo:margin-bottom=\"0.05in\"/>\n" \
     "</style:style>\n" \

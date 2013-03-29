@@ -134,6 +134,12 @@ The `--smart` extension provides "smart quotes", dashes, and ellipses.
 The `--notes` extension provides a footnote syntax like that of
 Pandoc or PHP Markdown Extra.
 
+The `--strike` extension provides a strike-through syntax like that of
+Redcarpet.  For strike-through support in LaTeX documents the `sout`
+macro from the `ulem` package is used.  Add
+`\usepackage[normalem]{ulem}` to your document's preamble to load it.
+
+
 Using the library
 =================
 
@@ -160,6 +166,7 @@ bitwise `&` operator and the following constants:
  - `EXT_NOTES` turns on footnote syntax.  [Pandoc's footnote syntax][] is used here.
  - `EXT_FILTER_HTML` filters out raw HTML (except for styles).
  - `EXT_FILTER_STYLES` filters out styles in HTML.
+ - `EXT_STRIKE` turns on strike-through syntax.
 
   [Pandoc's footnote syntax]: http://johnmacfarlane.net/pandoc/README.html#footnotes
 
