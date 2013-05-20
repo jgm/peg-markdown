@@ -82,12 +82,12 @@ Para =      NonindentSpace a:Inlines BlankLine+
 Plain =     a:Inlines
             { $$ = a; $$->key = PLAIN; }
 
-AtxInline = !Newline !(Sp? '#'* Sp Newline) Inline
+AtxInline = !Newline !(Sp '#'* Sp Newline) Inline
 
 AtxStart =  < ( "######" | "#####" | "####" | "###" | "##" | "#" ) >
             { $$ = mk_element(H1 + (strlen(yytext) - 1)); }
 
-AtxHeading = s:AtxStart Sp? a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp? '#'* Sp)?  Newline
+AtxHeading = s:AtxStart Sp a:StartList ( AtxInline { a = cons($$, a); } )+ (Sp '#'* Sp)?  Newline
             { $$ = mk_list(s->key, a);
               free(s); }
 
@@ -98,11 +98,11 @@ SetextBottom1 = '='+ Newline
 SetextBottom2 = '-'+ Newline
 
 SetextHeading1 =  &(RawLine SetextBottom1)
-                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
+                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp Newline
                   SetextBottom1 { $$ = mk_list(H1, a); }
 
 SetextHeading2 =  &(RawLine SetextBottom2)
-                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp? Newline
+                  a:StartList ( !Endline Inline { a = cons($$, a); } )+ Sp Newline
                   SetextBottom2 { $$ = mk_list(H2, a); }
 
 Heading = SetextHeading | AtxHeading
