@@ -12,7 +12,7 @@ PEGDIR=peg-0.1.9
 LEG=$(PEGDIR)/leg$(X)
 PKG_CONFIG = pkg-config
 
-ALL : $(PROGRAM)
+ALL : $(PROGRAM) library
 
 $(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)
@@ -23,13 +23,17 @@ $(LEG): $(PEGDIR)
 $(PROGRAM) : markdown.c $(OBJS)
 	$(CC) `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -o $@ $< $(OBJS) `$(PKG_CONFIG) --libs glib-2.0`
 
+library: $(OBJS)
+	$(CC) -shared $(OBJS) -o libpeg-markdown.so
+	ar rcs libpeg-markdown.a $(OBJS)
+
 markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.c utility_functions.c
 	$(LEG) -o $@ $<
 
 .PHONY: clean test
 
 clean:
-	rm -f markdown_parser.c $(PROGRAM) $(OBJS)
+	rm -f markdown_parser.c $(PROGRAM) $(OBJS) libpeg-markdown.*
 
 distclean: clean
 	make -C $(PEGDIR) clean

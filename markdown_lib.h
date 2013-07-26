@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <glib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum markdown_extensions {
     EXT_SMART            = 0x01,
     EXT_NOTES            = 0x02,
@@ -22,6 +26,10 @@ enum markdown_formats {
 
 GString * markdown_to_g_string(char *text, int extensions, int output_format);
 char * markdown_to_string(char *text, int extensions, int output_format);
+
+#ifdef __cplusplus
+}
+#endif
 
 /* vim: set ts=4 sw=4 : */
 #endif
