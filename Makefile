@@ -5,6 +5,7 @@ endif
 
 export X
 
+LIBNAME=libpeg-markdown
 PROGRAM=markdown$(X)
 CFLAGS ?= -Wall -O3 -ansi -D_GNU_SOURCE # -flto for newer GCC versions
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o utility_functions.o parsing_functions.o odf.o
@@ -12,7 +13,7 @@ PEGDIR=peg-0.1.9
 LEG=$(PEGDIR)/leg$(X)
 PKG_CONFIG = pkg-config
 
-ALL : $(PROGRAM) library
+ALL : $(PROGRAM) $(LIBNAME).a
 
 $(LEG): $(PEGDIR)
 	CC=gcc make -C $(PEGDIR)
@@ -23,9 +24,11 @@ $(LEG): $(PEGDIR)
 $(PROGRAM) : markdown.c $(OBJS)
 	$(CC) `$(PKG_CONFIG) --cflags glib-2.0` $(CFLAGS) -o $@ $< $(OBJS) `$(PKG_CONFIG) --libs glib-2.0`
 
-library: $(OBJS)
-	$(CC) -shared $(OBJS) -o libpeg-markdown.so
-	ar rcs libpeg-markdown.a $(OBJS)
+$(LIBNAME).a: $(OBJS)
+	ar rcs $(LIBNAME).a $(OBJS)
+
+$(LIBNAME).so: $(OBJS)
+	$(CC) -shared $(OBJS) -o $(LIBNAME).so
 
 markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.c utility_functions.c
 	$(LEG) -o $@ $<
@@ -33,7 +36,7 @@ markdown_parser.c : markdown_parser.leg $(LEG) markdown_peg.h parsing_functions.
 .PHONY: clean test
 
 clean:
-	rm -f markdown_parser.c $(PROGRAM) $(OBJS) libpeg-markdown.*
+	rm -f markdown_parser.c $(PROGRAM) $(OBJS) $(LIBNAME).*
 
 distclean: clean
 	make -C $(PEGDIR) clean
