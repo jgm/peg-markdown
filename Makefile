@@ -9,7 +9,7 @@ LIBNAME=libpeg-markdown
 PROGRAM=markdown$(X)
 CFLAGS ?= -Wall -O3 -ansi -D_GNU_SOURCE # -flto for newer GCC versions
 OBJS=markdown_parser.o markdown_output.o markdown_lib.o utility_functions.o parsing_functions.o odf.o
-PEGDIR=peg-0.1.9
+PEGDIR=peg-0.1.18
 LEG=$(PEGDIR)/leg$(X)
 PKG_CONFIG = pkg-config
 

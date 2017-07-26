@@ -15,7 +15,7 @@
 # 
 # THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
 # 
-# Last edited: 2012-04-29 15:51:15 by piumarta on emilia
+# Last edited: 2016-07-22 09:45:53 by piumarta on zora.local
 
 %{
 # include "tree.h"
@@ -31,6 +31,7 @@
   typedef struct Header Header;
 
   struct Header {
+    int	    line;
     char   *text;
     Header *next;
   };
@@ -38,22 +39,26 @@
   FILE *input= 0;
 
   int   verboseFlag= 0;
+  int   nolinesFlag= 0;
 
   static int	 lineNumber= 0;
+  static int	 headerLine= 0;
+  static int	 actionLine= 0;
   static char	*fileName= 0;
+  static int	 trailerLine= 0;
   static char	*trailer= 0;
   static Header	*headers= 0;
 
-  void makeHeader(char *text);
-  void makeTrailer(char *text);
+  void makeHeader(int line, char *text);
+  void makeTrailer(int line, char *text);
 
   void yyerror(char *message);
 
-# define YY_INPUT(buf, result, max)		\
-  {						\
-    int c= getc(input);				\
-    if ('\n' == c || '\r' == c) ++lineNumber;	\
-    result= (EOF == c) ? 0 : (*(buf)= c, 1);	\
+# define YY_INPUT(buf, result, max)			\
+  {							\
+    int c= getc(input);					\
+    /* if ('\n' == c || '\r' == c) ++lineNumber; */	\
+    result= (EOF == c) ? 0 : (*(buf)= c, 1);		\
   }
 
 # define YY_LOCAL(T)	static T
@@ -64,9 +69,12 @@
 
 grammar=	- ( declaration | definition )+ trailer? end-of-file
 
-declaration=	'%{' < ( !'%}' . )* > RPERCENT		{ makeHeader(yytext); }						#{YYACCEPT}
+declaration=	'%{'					{ headerLine= lineNumber; }
+		< ( !'%}' (end-of-line | .) )* >
+		RPERCENT				{ makeHeader(headerLine, yytext); }				#{YYACCEPT}
 
-trailer=	'%%' < .* >				{ makeTrailer(yytext); }					#{YYACCEPT}
+trailer=	'%%'					{ headerLine= lineNumber }
+		< .* >					{ makeTrailer(headerLine, yytext); }				#{YYACCEPT}
 
 definition=	identifier 				{ if (push(beginRule(findRule(yytext)))->rule.expression)
 							    fprintf(stderr, "rule '%s' redefined\n", yytext); }
@@ -76,10 +84,14 @@ definition=	identifier 				{ if (push(beginRule(findRule(yytext)))->rule.express
 expression=	sequence (BAR sequence			{ Node *f= pop();  push(Alternate_append(pop(), f)); }
 			    )*
 
-sequence=	prefix (prefix				{ Node *f= pop();  push(Sequence_append(pop(), f)); }
-			  )*
+sequence=	error   (error				{ Node *f= pop();  push(Sequence_append(pop(), f)); }
+			)*
 
-prefix=		AND action				{ push(makePredicate(yytext)); }
+error=		prefix  (TILDE action			{ push(makeError(pop(), yytext)); }
+			)?
+
+prefix=		AT  action				{ push(makeInline(yytext)); }
+|		AND action				{ push(makePredicate(yytext)); }
 |		AND suffix				{ push(makePeekFor(pop())); }
 |		NOT suffix				{ push(makePeekNot(pop())); }
 |		    suffix
@@ -96,7 +108,7 @@ primary=	identifier				{ push(makeVariable(yytext)); }
 |		literal					{ push(makeString(yytext)); }
 |		class					{ push(makeClass(yytext)); }
 |		DOT					{ push(makeDot()); }
-|		action					{ push(makeAction(yytext)); }
+|		action					{ push(makeAction(actionLine, yytext)); }
 |		BEGIN					{ push(makePredicate("YY_BEGIN")); }
 |		END					{ push(makePredicate("YY_END")); }
 
@@ -112,14 +124,17 @@ class=		'[' < ( !']' range )* > ']' -
 range=		char '-' char | char
 
 char=		'\\' [-abefnrtv'"\[\]\\]
+|		'\\' 'x'[0-9A-Fa-f][0-9A-Fa-f]
+|		'\\' 'x'[0-9A-Fa-f]
 |		'\\' [0-3][0-7][0-7]
 |		'\\' [0-7][0-7]?
 |		!'\\' .
 
-action=		'{' < braces* > '}' -
+action=		'{'					{ actionLine= lineNumber }
+		< braces* > '}' -
 
 braces=		'{' braces* '}'
-|		!'}' .
+|		!'}' ( end-of-line | . )
 
 EQUAL=		'=' -
 COLON=		':' -
@@ -127,6 +142,7 @@ SEMICOLON=	';' -
 BAR=		'|' -
 AND=		'&' -
 NOT=		'!' -
+AT=		'@' -
 QUESTION=	'?' -
 STAR=		'*' -
 PLUS=		'+' -
@@ -135,12 +151,13 @@ CLOSE=		')' -
 DOT=		'.' -
 BEGIN=		'<' -
 END=		'>' -
+TILDE=		'~' -
 RPERCENT=	'%}' -
 
 -=		(space | comment)*
 space=		' ' | '\t' | end-of-line
 comment=	'#' (!end-of-line .)* end-of-line
-end-of-line=	'\r\n' | '\n' | '\r'
+end-of-line=	( '\r\n' | '\n' | '\r' )		{ ++lineNumber }
 end-of-file=	!.
 
 %%
@@ -148,17 +165,17 @@ end-of-file=	!.
 void yyerror(char *message)
 {
   fprintf(stderr, "%s:%d: %s", fileName, lineNumber, message);
-  if (yyctx->text[0]) fprintf(stderr, " near token '%s'", yyctx->text);
-  if (yyctx->pos < yyctx->limit || !feof(input))
+  if (yyctx->__text[0]) fprintf(stderr, " near token '%s'", yyctx->__text);
+  if (yyctx->__pos < yyctx->__limit || !feof(input))
     {
-      yyctx->buf[yyctx->limit]= '\0';
+      yyctx->__buf[yyctx->__limit]= '\0';
       fprintf(stderr, " before text \"");
-      while (yyctx->pos < yyctx->limit)
+      while (yyctx->__pos < yyctx->__limit)
 	{
-	  if ('\n' == yyctx->buf[yyctx->pos] || '\r' == yyctx->buf[yyctx->pos]) break;
-	  fputc(yyctx->buf[yyctx->pos++], stderr);
+	  if ('\n' == yyctx->__buf[yyctx->__pos] || '\r' == yyctx->__buf[yyctx->__pos]) break;
+	  fputc(yyctx->__buf[yyctx->__pos++], stderr);
 	}
-      if (yyctx->pos == yyctx->limit)
+      if (yyctx->__pos == yyctx->__limit)
 	{
 	  int c;
 	  while (EOF != (c= fgetc(input)) && '\n' != c && '\r' != c)
@@ -170,16 +187,18 @@ void yyerror(char *message)
   exit(1);
 }
 
-void makeHeader(char *text)
+void makeHeader(int line, char *text)
 {
   Header *header= (Header *)malloc(sizeof(Header));
+  header->line= line;
   header->text= strdup(text);
   header->next= headers;
   headers= header;
 }
 
-void makeTrailer(char *text)
+void makeTrailer(int line, char *text)
 {
+  trailerLine= line;
   trailer= strdup(text);
 }
 
@@ -195,6 +214,7 @@ static void usage(char *name)
   fprintf(stderr, "where <option> can be\n");
   fprintf(stderr, "  -h          print this help information\n");
   fprintf(stderr, "  -o <ofile>  write output to <ofile>\n");
+  fprintf(stderr, "  -P          do not generate #line directives\n");
   fprintf(stderr, "  -v          be verbose\n");
   fprintf(stderr, "  -V          print version number and exit\n");
   fprintf(stderr, "if no <file> is given, input is read from stdin\n");
@@ -212,7 +232,7 @@ int main(int argc, char **argv)
   lineNumber= 1;
   fileName= "<stdin>";
 
-  while (-1 != (c= getopt(argc, argv, "Vho:v")))
+  while (-1 != (c= getopt(argc, argv, "PVho:v")))
     {
       switch (c)
 	{
@@ -230,6 +250,10 @@ int main(int argc, char **argv)
 	      perror(optarg);
 	      exit(1);
 	    }
+	  break;
+
+	case 'P':
+	  nolinesFlag= 1;
 	  break;
 
 	case 'v':
@@ -280,13 +304,16 @@ int main(int argc, char **argv)
   Rule_compile_c_header();
 
   for (; headers;  headers= headers->next)
-    fprintf(output, "%s\n", headers->text);
+    fprintf(output, "#line %i \"%s\"\n%s\n", headers->line, fileName, headers->text);
 
   if (rules)
-    Rule_compile_c(rules);
+    Rule_compile_c(rules, nolinesFlag);
 
-  if (trailer)
+  if (trailer) {
+    if (!nolinesFlag)
+      fprintf(output, "#line %i \"%s\"\n", trailerLine, fileName, trailer);
     fprintf(output, "%s\n", trailer);
+  }
 
   return 0;
 }

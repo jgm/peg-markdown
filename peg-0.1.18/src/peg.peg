@@ -12,7 +12,7 @@
 #     Foundation."  Symposium on Principles of Programming Languages,
 #     January 14--16, 2004, Venice, Italy.
 # 
-# Last edited: 2007-05-15 10:32:44 by piumarta on emilia
+# Last edited: 2016-07-15 10:27:27 by piumarta on zora
 
 # Hierarchical syntax
 
@@ -38,7 +38,7 @@ Primary		<- Identifier !LEFTARROW	{ push(makeName(findRule(yytext))); }
 		 / Literal			{ push(makeString(yytext)); }
 		 / Class			{ push(makeClass(yytext)); }
 		 / DOT				{ push(makeDot()); }
-		 / Action			{ push(makeAction(yytext)); }		#ikp added
+		 / Action			{ push(makeAction(0, yytext)); }	#ikp added
 		 / BEGIN			{ push(makePredicate("YY_BEGIN")); }	#ikp added
 		 / END				{ push(makePredicate("YY_END")); }	#ikp added
 

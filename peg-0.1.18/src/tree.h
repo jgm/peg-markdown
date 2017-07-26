@@ -13,12 +13,12 @@
  * 
  * THE SOFTWARE IS PROVIDED 'AS IS'.  USE ENTIRELY AT YOUR OWN RISK.
  * 
- * Last edited: 2007-05-15 10:32:05 by piumarta on emilia
+ * Last edited: 2016-07-22 09:42:48 by piumarta on zora.local
  */
 
 #include <stdio.h>
 
-enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Predicate, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
+enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Inline, Predicate, Error, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
 
 enum {
   RuleUsed	= 1<<0,
@@ -34,8 +34,10 @@ struct Dot	 { int type;  Node *next;										};
 struct Character { int type;  Node *next;   char *value;								};
 struct String	 { int type;  Node *next;   char *value;								};
 struct Class	 { int type;  Node *next;   unsigned char *value;							};
-struct Action	 { int type;  Node *next;   char *text;	  Node *list;  char *name;  Node *rule;				};
+struct Action	 { int type;  Node *next;   char *text;	  Node *list;  char *name;  Node *rule;  int line;		};
+struct Inline    { int type;  Node *next;   char *text;									};
 struct Predicate { int type;  Node *next;   char *text;									};
+struct Error	 { int type;  Node *next;   Node *element;  char *text;							};
 struct Alternate { int type;  Node *next;   Node *first;  Node *last;							};
 struct Sequence	 { int type;  Node *next;   Node *first;  Node *last;							};
 struct PeekFor	 { int type;  Node *next;   Node *element;								};
@@ -56,7 +58,9 @@ union Node
   struct String		string;
   struct Class		cclass;
   struct Action		action;
+  struct Inline		inLine;
   struct Predicate	predicate;
+  struct Error		error;
   struct Alternate	alternate;
   struct Sequence	sequence;
   struct PeekFor	peekFor;
@@ -86,8 +90,10 @@ extern Node *makeDot(void);
 extern Node *makeCharacter(char *text);
 extern Node *makeString(char *text);
 extern Node *makeClass(char *text);
-extern Node *makeAction(char *text);
+extern Node *makeAction(int lineNumber, char *text);
+extern Node *makeInline(char *text);
 extern Node *makePredicate(char *text);
+extern Node *makeError(Node *e, char *text);
 extern Node *makeAlternate(Node *e);
 extern Node *Alternate_append(Node *e, Node *f);
 extern Node *makeSequence(Node *e);
@@ -102,7 +108,7 @@ extern Node *top(void);
 extern Node *pop(void);
 
 extern void  Rule_compile_c_header(void);
-extern void  Rule_compile_c(Node *node);
+extern void  Rule_compile_c(Node *node, int nolines);
 
 extern void  Node_print(Node *node);
 extern void  Rule_print(Node *node);
