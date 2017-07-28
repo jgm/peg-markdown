@@ -60,6 +60,7 @@ artifacts/
 *.dll
 *.o
 *.a
+*.exe
 *.pch
 *.pdb
 *.pgc
