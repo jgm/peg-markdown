@@ -1,3 +1,5 @@
+**Note: this package is unmaintained.**
+
 What is this?
 =============
 
