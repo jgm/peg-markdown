@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <glib.h>
 
+// EXPORT macro for MSVC
+#include "export.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,11 +24,12 @@ enum markdown_formats {
     HTML_FORMAT,
     LATEX_FORMAT,
     GROFF_MM_FORMAT,
-    ODF_FORMAT
+    ODF_FORMAT,
+	WPF_XAML_FORMAT
 };
 
-GString * markdown_to_g_string(char *text, int extensions, int output_format);
-char * markdown_to_string(char *text, int extensions, int output_format);
+EXPORT GString * markdown_to_g_string(char *text, int extensions, int output_format);
+EXPORT char * markdown_to_string(char *text, int extensions, int output_format);
 
 #ifdef __cplusplus
 }

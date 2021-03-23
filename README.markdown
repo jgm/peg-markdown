@@ -120,6 +120,16 @@ peg-markdown source, execute:
     cd peg-0.1.4
     make PKG_CONFIG=c:/path/to/glib/bin/pkg-config.exe
 
+Compiling as a .DLL with Visual Studio on Windows
+-------------------------------------------------
+
+This may require some extra work if you're not using Visual Studio 2017.
+
+- Open win/peg-markdown.sln.
+- Right click on the solution in Visual Studio Solution Explorer and perform a nuget package restore.
+- Move glibconfig.h from packages\glib\build\native\include\glib to glib\build\native\include.
+- Build in x86 or x64.
+	
 Extensions
 ==========
 

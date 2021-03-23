@@ -6,6 +6,19 @@
 
 #include "markdown_peg.h"
 
+#ifdef _MSC_VER 
+
+// Bug in VS2017 with _strdup
+#if _MSC_VER >= 1900
+#pragma warning(disable: 4996)
+#endif
+
+#define strdup _strdup
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
+
+
 /* utility_functions.h - List manipulation functions, element
  * constructors, and macro definitions for leg markdown parser. */
 
